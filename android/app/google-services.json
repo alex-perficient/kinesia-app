@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "426456494653",
+    "project_id": "kinesia-app",
+    "storage_bucket": "kinesia-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:426456494653:android:cef296e264d3fa539af054",
+        "android_client_info": {
+          "package_name": "com.example.kinesia_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "426456494653-lcoijqjr92bq94qeq89i22gmkv639572.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdr5Qi_bnQA-plsZAfVrilOWJNOWq91dU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "426456494653-lcoijqjr92bq94qeq89i22gmkv639572.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
