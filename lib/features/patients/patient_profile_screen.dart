@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'create_routine_screen.dart'; // Para crear la rutina
-import '../patient_view/patient_routine_screen.dart'; // Para ver la rutina (Atajo temporal)
+import 'physio_routine_detail_screen.dart';
 
 class PatientProfileScreen extends StatelessWidget {
   final String patientId;
@@ -105,11 +105,13 @@ class PatientProfileScreen extends StatelessWidget {
                             ),
                           ),
                           onTap: () {
-                            // Vamos a la vista de la rutina del paciente
+                            // Ahora el fisio ve el detalle administrativo de su rutina
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => PatientRoutineScreen(routineId: routineId),
+                                builder: (context) => PhysioRoutineDetailScreen(
+                                  routineData: routineData,
+                                ),
                               ),
                             );
                           },

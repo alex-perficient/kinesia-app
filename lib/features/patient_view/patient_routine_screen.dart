@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 class PatientRoutineScreen extends StatelessWidget {
   final String routineId;
@@ -16,8 +16,6 @@ class PatientRoutineScreen extends StatelessWidget {
         foregroundColor: Colors.white,
       ),
       body: FutureBuilder<DocumentSnapshot>(
-        // Usamos FutureBuilder porque el paciente solo necesita leer la rutina al entrar, 
-        // no necesitamos escuchar cambios en tiempo real minuto a minuto aquí.
         future: FirebaseFirestore.instance.collection('routines').doc(routineId).get(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -35,7 +33,6 @@ class PatientRoutineScreen extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Encabezado
               Container(
                 padding: const EdgeInsets.all(20),
                 color: Colors.teal.shade50,
@@ -45,12 +42,10 @@ class PatientRoutineScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ),
-              
-              // Lista de ejercicios restringida a tamaño de celular
               Expanded(
                 child: Center(
                   child: SizedBox(
-                    width: 400, // <--- Esto simula el ancho de un celular
+                    width: 400, // Mantiene el tamaño tipo celular que definimos
                     child: ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: exercises.length,
@@ -70,7 +65,6 @@ class PatientRoutineScreen extends StatelessWidget {
   }
 }
 
-// Sub-componente para aislar la lógica de cada reproductor de YouTube
 class _ExerciseCard extends StatefulWidget {
   final Map<String, dynamic> exercise;
   final int index;
@@ -82,22 +76,37 @@ class _ExerciseCard extends StatefulWidget {
 }
 
 class _ExerciseCardState extends State<_ExerciseCard> {
-  YoutubePlayerController? _controller;
+  late YoutubePlayerController _controller;
   bool _isUrlValid = true;
 
   @override
   void initState() {
     super.initState();
     final url = widget.exercise['youtubeUrl'] ?? '';
-    // Extraemos el ID del video de la URL completa (ej. watch?v=XXXXX -> XXXXX)
-    final videoId = YoutubePlayer.convertUrlToId(url);
+    
+    // Extraemos el ID del video. (Ej. watch?v=dQw4w9WgXcQ -> dQw4w9WgXcQ)
+    String? videoId;
+    try {
+      final uri = Uri.parse(url);
+      if (uri.queryParameters.containsKey('v')) {
+        videoId = uri.queryParameters['v'];
+      } else if (uri.host.contains('youtu.be')) {
+        videoId = uri.pathSegments.first;
+      }
+    } catch (e) {
+      videoId = null;
+    }
 
-    if (videoId != null) {
-      _controller = YoutubePlayerController(
-        initialVideoId: videoId,
-        flags: const YoutubePlayerFlags(
-          autoPlay: false, // ¡Crucial para no gastar datos!
+    if (videoId != null && videoId.isNotEmpty) {
+      // Nueva inicialización usando Iframe
+      _controller = YoutubePlayerController.fromVideoId(
+        videoId: videoId,
+        autoPlay: false, // Seguimos protegiendo los datos del paciente
+        params: const YoutubePlayerParams(
+          showControls: true,
           mute: false,
+          showFullscreenButton: true,
+          loop: false,
         ),
       );
     } else {
@@ -107,7 +116,7 @@ class _ExerciseCardState extends State<_ExerciseCard> {
 
   @override
   void dispose() {
-    _controller?.dispose(); // Liberar memoria al hacer scroll
+    _controller.close();
     super.dispose();
   }
 
@@ -121,11 +130,11 @@ class _ExerciseCardState extends State<_ExerciseCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Área del Video
-          if (_isUrlValid && _controller != null)
+          // Área del Video con el nuevo paquete
+          if (_isUrlValid)
             YoutubePlayer(
-              controller: _controller!,
-              showVideoProgressIndicator: true,
+              controller: _controller,
+              backgroundColor: Colors.black,
             )
           else
             Container(
@@ -134,7 +143,6 @@ class _ExerciseCardState extends State<_ExerciseCard> {
               child: const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
             ),
             
-          // Información del Ejercicio
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -153,8 +161,6 @@ class _ExerciseCardState extends State<_ExerciseCard> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
-                // Botón para marcar como completado (Por ahora visual)
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(

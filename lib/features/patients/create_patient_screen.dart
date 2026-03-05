@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart'; // Importante para la segunda instancia
 
 class CreatePatientScreen extends StatefulWidget {
   const CreatePatientScreen({super.key});
@@ -11,15 +12,17 @@ class CreatePatientScreen extends StatefulWidget {
 
 class _CreatePatientScreenState extends State<CreatePatientScreen> {
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController(); // Opcional por ahora
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   
   bool _isLoading = false;
 
   Future<void> _savePatient() async {
-    // Validar que el nombre no esté vacío
-    if (_nameController.text.trim().isEmpty) {
+    if (_nameController.text.trim().isEmpty || 
+        _emailController.text.trim().isEmpty || 
+        _passwordController.text.trim().length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, ingresa el nombre del paciente.')),
+        const SnackBar(content: Text('Llena todos los campos. La contraseña debe tener al menos 6 caracteres.')),
       );
       return;
     }
@@ -30,35 +33,43 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
       final String physioId = FirebaseAuth.instance.currentUser!.uid;
       final physioRef = FirebaseFirestore.instance.collection('physiotherapists').doc(physioId);
 
-      // 1. Leer los datos actuales del fisioterapeuta
+      // 1. Validar límite de plan gratuito
       final physioDoc = await physioRef.get();
       final physioData = physioDoc.data() as Map<String, dynamic>;
       final String plan = physioData['plan'] ?? 'free';
       final int currentCount = physioData['patientCount'] ?? 0;
 
-      // 2. Aplicar la regla de negocio: Límite del plan gratuito
       if (plan == 'free' && currentCount >= 15) {
         if (mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Límite alcanzado'),
-              content: const Text('Has alcanzado el límite de 15 pacientes de tu plan gratuito. Mejora a Pro para agregar más.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Entendido'),
-                ),
-              ],
-            ),
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Límite de 15 pacientes alcanzado en el plan Free.')),
           );
         }
         setState(() => _isLoading = false);
-        return; // Detenemos la ejecución aquí
+        return;
       }
 
-      // 3. Crear el documento del nuevo paciente
-      await FirebaseFirestore.instance.collection('patients').add({
+      // 2. EL TRUCO ARQUITECTÓNICO: Crear una segunda app de Firebase temporal
+      // Esto evita que Firebase cierre la sesión del Fisioterapeuta actual.
+      FirebaseApp tempApp = await Firebase.initializeApp(
+        name: 'TemporaryPatientCreation',
+        options: Firebase.app().options,
+      );
+
+      // 3. Crear el usuario en Authentication usando la app temporal
+      UserCredential userCredential = await FirebaseAuth.instanceFor(app: tempApp)
+          .createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      final String newPatientId = userCredential.user!.uid;
+
+      // 4. Destruir la app temporal inmediatamente por seguridad
+      await tempApp.delete();
+
+      // 5. Guardar el documento del paciente en Firestore con el nuevo ID real
+      await FirebaseFirestore.instance.collection('patients').doc(newPatientId).set({
         'physioId': physioId,
         'fullName': _nameController.text.trim(),
         'email': _emailController.text.trim(),
@@ -66,23 +77,18 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // 4. Aumentar el contador del fisioterapeuta en +1
-      await physioRef.update({
-        'patientCount': FieldValue.increment(1),
-      });
+      // 6. Actualizar el contador del fisio
+      await physioRef.update({'patientCount': FieldValue.increment(1)});
 
-      // 5. Mostrar éxito y regresar al Dashboard
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Paciente agregado exitosamente ✅')),
+          const SnackBar(content: Text('Paciente y credenciales creadas con éxito ✅')),
         );
-        Navigator.pop(context); // Cierra la pantalla
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -93,33 +99,28 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nuevo Paciente'),
-      ),
-      body: Padding(
+      appBar: AppBar(title: const Text('Nuevo Paciente')),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Ingresa los datos del paciente. Más adelante podrás asignarle rutinas.',
+              'Crea las credenciales de acceso para tu paciente.',
               style: TextStyle(color: Colors.grey, fontSize: 16),
             ),
             const SizedBox(height: 24),
             
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Nombre Completo (Requerido)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
-              ),
+              decoration: const InputDecoration(labelText: 'Nombre Completo', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person)),
               textCapitalization: TextCapitalization.words,
             ),
             const SizedBox(height: 16),
@@ -127,11 +128,13 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
             TextField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Correo Electrónico (Opcional)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.email),
-              ),
+              decoration: const InputDecoration(labelText: 'Correo del Paciente', border: OutlineInputBorder(), prefixIcon: Icon(Icons.email)),
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: _passwordController,
+              decoration: const InputDecoration(labelText: 'Contraseña Temporal (Mín. 6 letras/números)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.lock)),
             ),
             const SizedBox(height: 32),
             
@@ -139,13 +142,10 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
               height: 50,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _savePatient,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  foregroundColor: Colors.white,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Guardar Paciente', style: TextStyle(fontSize: 18)),
+                    : const Text('Generar Acceso y Guardar', style: TextStyle(fontSize: 18)),
               ),
             ),
           ],

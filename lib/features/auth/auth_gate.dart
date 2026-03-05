@@ -1,34 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_screen.dart';
 import '../dashboard_physio/dashboard_screen.dart';
+import '../patient_view/patient_home_screen.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // StreamBuilder "escucha" los cambios de estado (login/logout) en tiempo real
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Si Firebase está verificando, mostramos un indicador de carga
+        // 1. Revisando estado de la sesión
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        // Si el usuario NO existe (no ha iniciado sesión), mostramos el Login
+        // 2. Si no hay usuario logueado, mandamos al Login
         if (!snapshot.hasData) {
           return const LoginScreen();
         }
 
-        // Si el usuario SÍ existe, lo mandamos a su pantalla principal.
-        // Por ahora, pondremos una pantalla temporal (placeholder) del Dashboard.
-        // Más adelante, aquí agregaremos la lógica para separar al Fisio del Paciente.
-        // Si el usuario SÍ existe, lo mandamos a su pantalla principal.
-        return const DashboardPhysioScreen();
+        final User currentUser = snapshot.data!;
+
+        // 3. Si hay usuario, averiguamos su ROL (Fisio o Paciente)
+        return FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance.collection('physiotherapists').doc(currentUser.uid).get(),
+          builder: (context, roleSnapshot) {
+            if (roleSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator(color: Colors.teal)));
+            }
+
+            // Si el documento existe en la colección de fisios...
+            if (roleSnapshot.hasData && roleSnapshot.data!.exists) {
+              return const DashboardPhysioScreen(); // Entra el Fisioterapeuta
+            } else {
+              // Si no existe, por descarte es un paciente
+              return const PatientHomeScreen(); // Entra el Paciente
+            }
+          },
+        );
       },
     );
   }
