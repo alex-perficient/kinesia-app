@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'create_routine_screen.dart'; // Para crear la rutina
 import 'physio_routine_detail_screen.dart';
+import 'clinical_evaluation_screen.dart';
 
 class PatientProfileScreen extends StatelessWidget {
   final String patientId;
@@ -24,7 +25,31 @@ class PatientProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Encabezado de la sección de rutinas
+            // NUEVO BOTÓN PARA EVALUACIÓN CLÍNICA
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ClinicalEvaluationScreen(
+                        patientId: patientId,
+                        patientName: patientName,
+                      ),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: const BorderSide(color: Colors.teal, width: 2),
+                ),
+                icon: const Icon(Icons.assignment_ind, color: Colors.teal),
+                label: const Text('Nueva Evaluación Clínica', style: TextStyle(fontSize: 16, color: Colors.teal, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
             const Text(
               'Rutinas Asignadas',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -111,6 +136,7 @@ class PatientProfileScreen extends StatelessWidget {
                               MaterialPageRoute(
                                 builder: (context) => PhysioRoutineDetailScreen(
                                   routineData: routineData,
+                                  routineId: routineId,
                                 ),
                               ),
                             );

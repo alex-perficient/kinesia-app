@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'routine_history_screen.dart';
 
 class PhysioRoutineDetailScreen extends StatelessWidget {
   final Map<String, dynamic> routineData;
+  final String routineId;
 
   const PhysioRoutineDetailScreen({
     super.key,
     required this.routineData,
+    required this.routineId,
   });
 
   @override
@@ -18,12 +21,18 @@ class PhysioRoutineDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(title),
         actions: [
-          // Un botón visual para el futuro (ej. editar o desactivar)
           IconButton(
-            icon: const Icon(Icons.edit),
+            icon: const Icon(Icons.analytics),
+            tooltip: 'Ver Historial de Registros',
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Próximamente: Editar rutina')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RoutineHistoryScreen(
+                    routineId: routineId,
+                    routineTitle: title,
+                  ),
+                ),
               );
             },
           )

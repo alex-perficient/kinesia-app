@@ -15,7 +15,11 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   
+  // NUEVA VARIABLE: Por defecto será Clínico (Rehabilitación)
+  String _selectedProfile = 'clinical'; 
+  
   bool _isLoading = false;
+  
 
   Future<void> _savePatient() async {
     if (_nameController.text.trim().isEmpty || 
@@ -74,6 +78,7 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
         'fullName': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'status': 'active',
+        'profileType': _selectedProfile, // ¡AQUÍ ESTÁ LA MAGIA!
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -129,6 +134,32 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(labelText: 'Correo del Paciente', border: OutlineInputBorder(), prefixIcon: Icon(Icons.email)),
+            ),
+            const SizedBox(height: 16),
+
+            // NUEVO SELECTOR DE PERFIL
+            DropdownButtonFormField<String>(
+              value: _selectedProfile,
+              decoration: const InputDecoration(
+                labelText: 'Tipo de Paciente / Enfoque',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.category),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'clinical',
+                  child: Text('Clínico (Rehabilitación / Lesión)'),
+                ),
+                DropdownMenuItem(
+                  value: 'fitness',
+                  child: Text('Fitness (Fuerza / Rendimiento)'),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedProfile = value!;
+                });
+              },
             ),
             const SizedBox(height: 16),
 

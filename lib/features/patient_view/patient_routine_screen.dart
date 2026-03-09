@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'exercise_tracking_screen.dart';
 
 class PatientRoutineScreen extends StatelessWidget {
   final String routineId;
@@ -51,7 +52,7 @@ class PatientRoutineScreen extends StatelessWidget {
                       itemCount: exercises.length,
                       itemBuilder: (context, index) {
                         final exercise = exercises[index] as Map<String, dynamic>;
-                        return _ExerciseCard(exercise: exercise, index: index);
+                        return _ExerciseCard(exercise: exercise, index: index, routineId: routineId);
                       },
                     ),
                   ),
@@ -68,8 +69,9 @@ class PatientRoutineScreen extends StatelessWidget {
 class _ExerciseCard extends StatefulWidget {
   final Map<String, dynamic> exercise;
   final int index;
+  final String routineId;
 
-  const _ExerciseCard({required this.exercise, required this.index});
+  const _ExerciseCard({required this.exercise, required this.index,required this.routineId});
 
   @override
   State<_ExerciseCard> createState() => _ExerciseCardState();
@@ -78,30 +80,30 @@ class _ExerciseCard extends StatefulWidget {
 class _ExerciseCardState extends State<_ExerciseCard> {
   late YoutubePlayerController _controller;
   bool _isUrlValid = true;
+  String? _videoId;
+  bool _showVideo = false; // NUEVO: Controla si mostramos la imagen o el reproductor
 
   @override
   void initState() {
     super.initState();
     final url = widget.exercise['youtubeUrl'] ?? '';
     
-    // Extraemos el ID del video. (Ej. watch?v=dQw4w9WgXcQ -> dQw4w9WgXcQ)
-    String? videoId;
+    // Extraemos el ID del video
     try {
       final uri = Uri.parse(url);
       if (uri.queryParameters.containsKey('v')) {
-        videoId = uri.queryParameters['v'];
+        _videoId = uri.queryParameters['v'];
       } else if (uri.host.contains('youtu.be')) {
-        videoId = uri.pathSegments.first;
+        _videoId = uri.pathSegments.first;
       }
     } catch (e) {
-      videoId = null;
+      _videoId = null;
     }
 
-    if (videoId != null && videoId.isNotEmpty) {
-      // Nueva inicialización usando Iframe
+    if (_videoId != null && _videoId!.isNotEmpty) {
       _controller = YoutubePlayerController.fromVideoId(
-        videoId: videoId,
-        autoPlay: false, // Seguimos protegiendo los datos del paciente
+        videoId: _videoId!,
+        autoPlay: true, // Ahora sí autoplay=true, porque solo se inicializa cuando el usuario toca la imagen
         params: const YoutubePlayerParams(
           showControls: true,
           mute: false,
@@ -116,7 +118,9 @@ class _ExerciseCardState extends State<_ExerciseCard> {
 
   @override
   void dispose() {
-    _controller.close();
+    if (_showVideo && _isUrlValid) {
+      _controller.close();
+    }
     super.dispose();
   }
 
@@ -130,19 +134,52 @@ class _ExerciseCardState extends State<_ExerciseCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Área del Video con el nuevo paquete
-          if (_isUrlValid)
-            YoutubePlayer(
-              controller: _controller,
-              backgroundColor: Colors.black,
-            )
-          else
+          // ÁREA VISUAL OPTIMIZADA: Miniatura vs Video Real
+          if (!_isUrlValid)
             Container(
               height: 200,
               color: Colors.grey.shade300,
               child: const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+            )
+          else if (!_showVideo)
+            // Mostramos solo la imagen (thumbnail) para no gastar memoria
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showVideo = true; // Al tocar, cargamos el reproductor pesado
+                });
+              },
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Image.network(
+                    'https://img.youtube.com/vi/$_videoId/hqdefault.jpg',
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 200,
+                      color: Colors.grey.shade300,
+                      child: const Center(child: Icon(Icons.video_library, size: 50, color: Colors.grey)),
+                    ),
+                  ),
+                  // Capa oscura y botón de Play falso para invitar al clic
+                  Container(
+                    height: 200,
+                    color: Colors.black45,
+                  ),
+                  const Icon(Icons.play_circle_fill, size: 64, color: Colors.white),
+                ],
+              ),
+            )
+          else
+            // El reproductor real de YouTube (solo existe si _showVideo es true)
+            YoutubePlayer(
+              controller: _controller,
+              backgroundColor: Colors.black,
             ),
             
+          // INFORMACIÓN DEL EJERCICIO
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -165,12 +202,19 @@ class _ExerciseCardState extends State<_ExerciseCard> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('¡Excelente trabajo! Ejercicio completado.')),
+                      // Navegamos a la pantalla de captura
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ExerciseTrackingScreen(
+                            exercise: widget.exercise,
+                            routineId: widget.routineId, 
+                          ),
+                        ),
                       );
                     },
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('Marcar como completado'),
+                    icon: const Icon(Icons.edit_note),
+                    label: const Text('Registrar mis series'),
                   ),
                 )
               ],
@@ -180,6 +224,8 @@ class _ExerciseCardState extends State<_ExerciseCard> {
       ),
     );
   }
+
+  // ... (Conserva tu método _buildStatBadge igual que antes)
 
   Widget _buildStatBadge(IconData icon, String text) {
     return Container(
