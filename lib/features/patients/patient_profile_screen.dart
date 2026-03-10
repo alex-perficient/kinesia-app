@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../notifications/notification_bell.dart';
 import 'create_routine_screen.dart'; // Para crear la rutina
 import 'physio_routine_detail_screen.dart';
 import 'clinical_evaluation_screen.dart';
+import 'clinical_history_list_screen.dart';
 
 class PatientProfileScreen extends StatelessWidget {
   final String patientId;
@@ -19,6 +21,11 @@ class PatientProfileScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Perfil: $patientName'),
+        //title: Text('Perfil del Paciente'),
+        actions: [
+          // ¡Aquí inyectamos nuestra campanita inteligente!
+        //  NotificationBell(userId: patientId), // Asegúrate de pasarle el ID real del usuario
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -49,9 +56,42 @@ class PatientProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
+
+            // ... (Aquí termina tu botón anterior de Nueva Evaluación Clínica) ...
+            
+            const SizedBox(height: 12), // Espacio entre botones
+            
+            // NUEVO BOTÓN: Ver Expediente Clínico
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ClinicalHistoryListScreen(
+                        patientId: patientId,
+                        patientName: patientName,
+                      ),
+                    ),
+                  );
+                },
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Colors.teal.shade50,
+                ),
+                icon: const Icon(Icons.folder_shared, color: Colors.teal),
+                label: const Text(
+                  'Ver Expediente Clínico', 
+                  style: TextStyle(fontSize: 16, color: Colors.teal, fontWeight: FontWeight.bold)
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             
             const Text(
               'Rutinas Asignadas',
+// ... (El resto de tu código continúa igual) ...
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const Divider(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:kinesia_app/features/notifications/notification_bell.dart';
 import 'patient_routine_screen.dart'; // La pantalla de los videos de YouTube
 
 class PatientHomeScreen extends StatelessWidget {
@@ -18,6 +19,7 @@ class PatientHomeScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          NotificationBell(userId: currentUserId),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Cerrar Sesión',
