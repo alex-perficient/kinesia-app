@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../notifications/notification_bell.dart';
+//import '../notifications/notification_bell.dart';
 import 'create_routine_screen.dart'; // Para crear la rutina
 import 'physio_routine_detail_screen.dart';
 import 'clinical_evaluation_screen.dart';

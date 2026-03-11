@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:kinesia_app/services/notification_service.dart';
 
 class ExerciseTrackingScreen extends StatefulWidget {
   final Map<String, dynamic> exercise;
@@ -19,6 +20,7 @@ class ExerciseTrackingScreen extends StatefulWidget {
 class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
   final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
   String _profileType = 'fitness'; // Por defecto
+  String? _physioId; // NUEVO: Aquí guardaremos el ID del fisioterapeuta
   bool _isLoadingProfile = true;
   bool _isSaving = false;
 
@@ -42,6 +44,7 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
       if (doc.exists) {
         setState(() {
           _profileType = doc.data()?['profileType'] ?? 'fitness';
+          _physioId = doc.data()?['physioId'];
           _isLoadingProfile = false;
         });
       }
@@ -88,6 +91,15 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
 
       // 3. Guardamos en una nueva colección maestra llamada 'workout_logs'
       await FirebaseFirestore.instance.collection('workout_logs').add(logData);
+
+      // NUEVO: Disparamos la notificación de regreso al Fisio
+      if (_physioId != null) {
+        await NotificationService.sendNotification(
+          receiverId: _physioId!,
+          title: 'Ejercicio Registrado 💪',
+          body: 'Tu paciente ha completado el ejercicio: ${widget.exercise['title']}.',
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

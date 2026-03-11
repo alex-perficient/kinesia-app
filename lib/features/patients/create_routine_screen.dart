@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:kinesia_app/services/notification_service.dart';
 
 class CreateRoutineScreen extends StatefulWidget {
   final String patientId;
@@ -77,6 +78,13 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         'createdAt': FieldValue.serverTimestamp(),
         'isActive': true,
       });
+
+      // NUEVO: Disparador de Notificación
+      await NotificationService.sendNotification(
+        receiverId: widget.patientId, // Asegúrate de que esta variable exista en tu pantalla
+        title: 'Nueva Rutina Asignada 🏋️',
+        body: 'Tu fisioterapeuta te ha enviado nuevos ejercicios para trabajar.',
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

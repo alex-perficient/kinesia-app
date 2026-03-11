@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../patients/create_patient_screen.dart';
 import '../patients/patient_profile_screen.dart';
+import 'package:kinesia_app/features/notifications/notification_bell.dart';
 
 class DashboardPhysioScreen extends StatelessWidget {
   const DashboardPhysioScreen({super.key});
@@ -16,6 +17,7 @@ class DashboardPhysioScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Kines.ia', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
+          NotificationBell(userId: currentUserId), // Usa la variable de tu fisio logueado
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Cerrar Sesión',
