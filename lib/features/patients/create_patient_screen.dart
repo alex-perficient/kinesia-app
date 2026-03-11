@@ -169,6 +169,36 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
             ),
             const SizedBox(height: 32),
             
+            // NUEVO: Micro-copy preventivo sobre el modelo Freemium
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Crear un expediente consume 1 espacio de tu cuota. Los espacios no se recuperan al archivar pacientes debido al resguardo de audios e IA. Al superar tu volumen gratuito, podrás continuar usando Kines.ia sin límites por \$100 MXN mensuales.',
+                      style: TextStyle(
+                        color: Colors.blue.shade800,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Aquí debajo debería estar tu botón actual de Guardar...
+            // ElevatedButton( onPressed: _savePatient ... )
             SizedBox(
               height: 50,
               child: ElevatedButton(

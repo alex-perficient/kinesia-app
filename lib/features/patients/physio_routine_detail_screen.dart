@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'routine_history_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PhysioRoutineDetailScreen extends StatelessWidget {
   final Map<String, dynamic> routineData;
@@ -11,6 +12,55 @@ class PhysioRoutineDetailScreen extends StatelessWidget {
     required this.routineId,
   });
 
+  Future<void> _deleteRoutine(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Eliminar esta rutina?'),
+        content: const Text(
+          'Esta acción quitará la rutina del celular del paciente inmediatamente. Los registros de los días que ya la completó seguirán a salvo en su bitácora histórica.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        // Asumiendo que recibes el ID de la rutina en tu pantalla como widget.routineId
+        await FirebaseFirestore.instance
+            .collection('routines')
+            .doc(routineId) 
+            .delete();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Rutina eliminada correctamente.')),
+          );
+          // Regresamos a la pantalla anterior (El historial del paciente)
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error al eliminar: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  
+
   @override
   Widget build(BuildContext context) {
     final String title = routineData['title'] ?? 'Detalle de Rutina';
@@ -21,6 +71,12 @@ class PhysioRoutineDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(title),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            color: Colors.red.shade300,
+            tooltip: 'Eliminar Rutina',
+            onPressed: () => _deleteRoutine(context),
+          ),
           IconButton(
             icon: const Icon(Icons.analytics),
             tooltip: 'Ver Historial de Registros',

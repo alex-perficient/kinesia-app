@@ -12,6 +12,51 @@ class ClinicalHistoryListScreen extends StatelessWidget {
     required this.patientName,
   });
 
+  Future<void> _deleteClinicalNote(BuildContext context, String noteId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Eliminar esta nota clínica?'),
+        content: const Text(
+          'Esta acción borrará este registro del expediente del paciente de forma permanente. ¿Estás seguro de continuar?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        // Borramos el documento de la base de datos
+        await FirebaseFirestore.instance
+            .collection('clinical_histories')
+            .doc(noteId)
+            .delete();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Nota clínica eliminada correctamente.')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error al eliminar: $e')),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,6 +141,15 @@ class ClinicalHistoryListScreen extends StatelessWidget {
                             label: Text(formattedDate),
                             backgroundColor: Colors.teal.shade50,
                             labelStyle: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+                          ),
+                          // NUEVO: El botón de eliminar al lado de la fecha
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            tooltip: 'Eliminar nota',
+                            onPressed: () {
+                              // histories[index].id nos da el ID real del documento en Firestore
+                              _deleteClinicalNote(context, histories[index].id);
+                            },
                           ),
                         ],
                       ),

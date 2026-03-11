@@ -97,6 +97,7 @@ class DashboardPhysioScreen extends StatelessWidget {
                     stream: FirebaseFirestore.instance
                         .collection('patients')
                         .where('physioId', isEqualTo: currentUserId)
+                        .where('status', isEqualTo: 'active')        // NUEVO: Solo los activos
                         // Por ahora no usamos .orderBy() para no forzar la creación manual de índices en Firebase
                         .snapshots(),
                     builder: (context, patientSnapshot) {

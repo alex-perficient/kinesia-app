@@ -16,6 +16,58 @@ class PatientProfileScreen extends StatelessWidget {
     required this.patientName,
   });
 
+  Future<void> _archivePatient(BuildContext context) async {
+    // 1. Mostrar diálogo de confirmación por seguridad
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Dar de alta / Archivar paciente?'),
+        content: const Text(
+          'El paciente ya no aparecerá en tu lista principal.\n\n'
+          '💡 Nota importante: Su expediente, audios y datos clínicos seguirán resguardados en la nube por seguridad médica. Por lo tanto, archivar a un paciente no libera espacios de tu cuota actual.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Archivar',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // 2. Si el fisio confirma, hacemos el Soft Delete
+    if (confirm == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('patients')
+            .doc(patientId)
+            .update({'status': 'archived'});
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Paciente archivado correctamente.')),
+          );
+          // 3. Lo regresamos al Dashboard automáticamente
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error al archivar: $e')));
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,7 +76,16 @@ class PatientProfileScreen extends StatelessWidget {
         //title: Text('Perfil del Paciente'),
         actions: [
           // ¡Aquí inyectamos nuestra campanita inteligente!
-        //  NotificationBell(userId: patientId), // Asegúrate de pasarle el ID real del usuario
+          //  NotificationBell(userId: patientId), // Asegúrate de pasarle el ID real del usuario
+          // Botón para archivar paciente
+          IconButton(
+            icon: const Icon(Icons.archive_outlined),
+            color: Colors
+                .red
+                .shade200, // Un color sutil para no asustar, pero indicar precaución
+            tooltip: 'Archivar paciente',
+            onPressed: () => _archivePatient(context),
+          ),
         ],
       ),
       body: Padding(
@@ -52,15 +113,20 @@ class PatientProfileScreen extends StatelessWidget {
                   side: const BorderSide(color: Colors.teal, width: 2),
                 ),
                 icon: const Icon(Icons.assignment_ind, color: Colors.teal),
-                label: const Text('Nueva Evaluación Clínica', style: TextStyle(fontSize: 16, color: Colors.teal, fontWeight: FontWeight.bold)),
+                label: const Text(
+                  'Nueva Evaluación Clínica',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.teal,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 24),
 
             // ... (Aquí termina tu botón anterior de Nueva Evaluación Clínica) ...
-            
             const SizedBox(height: 12), // Espacio entre botones
-            
             // NUEVO BOTÓN: Ver Expediente Clínico
             SizedBox(
               width: double.infinity,
@@ -82,22 +148,26 @@ class PatientProfileScreen extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.folder_shared, color: Colors.teal),
                 label: const Text(
-                  'Ver Expediente Clínico', 
-                  style: TextStyle(fontSize: 16, color: Colors.teal, fontWeight: FontWeight.bold)
+                  'Ver Expediente Clínico',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.teal,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 24),
-            
+
             const Text(
               'Rutinas Asignadas',
-// ... (El resto de tu código continúa igual) ...
+              // ... (El resto de tu código continúa igual) ...
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const Divider(),
-            
+
             // Placeholder temporal para la lista de rutinas
-          // Lista Reactiva de Rutinas
+            // Lista Reactiva de Rutinas
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 // Consultamos la colección 'routines' filtrando por este paciente en específico
@@ -112,7 +182,10 @@ class PatientProfileScreen extends StatelessWidget {
 
                   if (snapshot.hasError) {
                     return const Center(
-                      child: Text('Error al cargar las rutinas.', style: TextStyle(color: Colors.red)),
+                      child: Text(
+                        'Error al cargar las rutinas.',
+                        style: TextStyle(color: Colors.red),
+                      ),
                     );
                   }
 
@@ -131,10 +204,12 @@ class PatientProfileScreen extends StatelessWidget {
                   return ListView.builder(
                     itemCount: routineDocs.length,
                     itemBuilder: (context, index) {
-                      final routineData = routineDocs[index].data() as Map<String, dynamic>;
-                      final String title = routineData['title'] ?? 'Rutina sin título';
+                      final routineData =
+                          routineDocs[index].data() as Map<String, dynamic>;
+                      final String title =
+                          routineData['title'] ?? 'Rutina sin título';
                       final bool isActive = routineData['isActive'] ?? false;
-                      
+
                       // Como guardamos los ejercicios en un arreglo, podemos saber cuántos son fácilmente
                       final List exercises = routineData['exercises'] ?? [];
                       final String routineId = routineDocs[index].id;
@@ -142,22 +217,36 @@ class PatientProfileScreen extends StatelessWidget {
                       return Card(
                         elevation: 2,
                         margin: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.all(16),
                           leading: CircleAvatar(
-                            backgroundColor: isActive ? Colors.teal.shade100 : Colors.grey.shade200,
+                            backgroundColor: isActive
+                                ? Colors.teal.shade100
+                                : Colors.grey.shade200,
                             child: Icon(
                               Icons.fitness_center,
                               color: isActive ? Colors.teal : Colors.grey,
                             ),
                           ),
-                          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('${exercises.length} ejercicios asignados'),
+                          title: Text(
+                            title,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            '${exercises.length} ejercicios asignados',
+                          ),
                           trailing: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: isActive ? Colors.green.shade50 : Colors.grey.shade100,
+                              color: isActive
+                                  ? Colors.green.shade50
+                                  : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
