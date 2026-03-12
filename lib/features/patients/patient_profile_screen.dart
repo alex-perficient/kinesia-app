@@ -191,12 +191,66 @@ class PatientProfileScreen extends StatelessWidget {
 
                   final routineDocs = snapshot.data?.docs ?? [];
 
+                  //  if (routineDocs.isEmpty) {
+                  // Empty State de las Rutinas
                   if (routineDocs.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'Este paciente aún no tiene rutinas asignadas.\nToca el botón para crear su primera rutina de rehabilitación.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                    // Asegúrate de usar el nombre de tu variable de lista aquí
+                    return Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.teal.shade50,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.fitness_center, // Ícono de ejercicio
+                                size: 80,
+                                color: Colors.teal.shade300,
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            const Text(
+                              'Sin plan de rehabilitación',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Es momento de poner a este paciente en movimiento. Toca el botón de agregar para diseñar su primera rutina de ejercicios personalizados.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                                height: 1.5,
+                              ),
+                            ),
+                            // Opcional: Si en esta pantalla TIENES un FloatingActionButton,
+                            // puedes pegar aquí el mismo código de la flecha que usamos en el Dashboard.
+                            Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 32.0),
+                                    child: Transform.rotate(
+                                      // Rota la flecha hacia abajo a la derecha (↘)
+                                      angle: -0.5,
+                                      child: Icon(
+                                        Icons.arrow_downward_rounded,
+                                        size: 48,
+                                        color: Colors.teal.shade200,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                          ],
+                        ),
                       ),
                     );
                   }

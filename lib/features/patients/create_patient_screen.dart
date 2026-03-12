@@ -139,7 +139,7 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
 
             // NUEVO SELECTOR DE PERFIL
             DropdownButtonFormField<String>(
-              value: _selectedProfile,
+              initialValue: _selectedProfile,
               decoration: const InputDecoration(
                 labelText: 'Tipo de Paciente / Enfoque',
                 border: OutlineInputBorder(),

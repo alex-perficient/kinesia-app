@@ -108,7 +108,9 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
         Navigator.pop(context); // Regresamos a la rutina
       }
     } catch (e) {
+      if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
+      } 
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

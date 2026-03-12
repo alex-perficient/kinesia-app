@@ -28,7 +28,10 @@ class ClinicalHistoryListScreen extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -44,14 +47,16 @@ class ClinicalHistoryListScreen extends StatelessWidget {
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Nota clínica eliminada correctamente.')),
+            const SnackBar(
+              content: Text('Nota clínica eliminada correctamente.'),
+            ),
           );
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error al eliminar: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error al eliminar: $e')));
         }
       }
     }
@@ -83,19 +88,54 @@ class ClinicalHistoryListScreen extends StatelessWidget {
           final histories = snapshot.data?.docs ?? [];
           // NUEVO: Ordenamiento local (más reciente primero)
           histories.sort((a, b) {
-            final Timestamp tA = (a.data() as Map<String, dynamic>)['date'] ?? Timestamp.now();
-            final Timestamp tB = (b.data() as Map<String, dynamic>)['date'] ?? Timestamp.now();
-            return tB.compareTo(tA); 
+            final Timestamp tA =
+                (a.data() as Map<String, dynamic>)['date'] ?? Timestamp.now();
+            final Timestamp tB =
+                (b.data() as Map<String, dynamic>)['date'] ?? Timestamp.now();
+            return tB.compareTo(tA);
           });
 
+          // Empty State del Historial Clínico
           if (histories.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32.0),
-                child: Text(
-                  'No hay evaluaciones clínicas registradas aún.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+            return Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons
+                            .medical_information_outlined, // Ícono médico elegante
+                        size: 80,
+                        color: Colors.teal.shade300,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    const Text(
+                      'Expediente en blanco',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Este paciente aún no tiene notas de evolución. Regresa a su perfil y utiliza el botón de "Evaluación" para grabar la primera consulta con Inteligencia Artificial.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );
@@ -106,22 +146,26 @@ class ClinicalHistoryListScreen extends StatelessWidget {
             itemCount: histories.length,
             itemBuilder: (context, index) {
               final data = histories[index].data() as Map<String, dynamic>;
-              
+
               // Formateo de fecha
               final Timestamp? timestamp = data['date'] as Timestamp?;
               final DateTime date = timestamp?.toDate() ?? DateTime.now();
-              final String formattedDate = '${date.day}/${date.month}/${date.year}';
+              final String formattedDate =
+                  '${date.day}/${date.month}/${date.year}';
 
               final String diagnosis = data['diagnosis'] ?? 'Sin diagnóstico';
               final String objectives = data['objectives'] ?? 'Sin objetivos';
               final String painZones = data['painZones'] ?? 'No especificadas';
-              final String rawNotes = data['rawNotes'] ?? ''; // La transcripción original
-              final String? audioUrl = data['audioUrl']; // Preparado para el futuro
+              //final String rawNotes = data['rawNotes'] ?? ''; // La transcripción original
+              final String? audioUrl =
+                  data['audioUrl']; // Preparado para el futuro
 
               return Card(
                 elevation: 4,
                 margin: const EdgeInsets.only(bottom: 24),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
@@ -134,17 +178,27 @@ class ClinicalHistoryListScreen extends StatelessWidget {
                           Expanded(
                             child: Text(
                               diagnosis,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.teal,
+                              ),
                             ),
                           ),
                           Chip(
                             label: Text(formattedDate),
                             backgroundColor: Colors.teal.shade50,
-                            labelStyle: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+                            labelStyle: const TextStyle(
+                              color: Colors.teal,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           // NUEVO: El botón de eliminar al lado de la fecha
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.red,
+                            ),
                             tooltip: 'Eliminar nota',
                             onPressed: () {
                               // histories[index].id nos da el ID real del documento en Firestore
@@ -160,7 +214,10 @@ class ClinicalHistoryListScreen extends StatelessWidget {
                       Text(objectives, style: const TextStyle(fontSize: 15)),
                       const SizedBox(height: 16),
 
-                      _buildSectionTitle(Icons.personal_injury, 'Zonas de Dolor'),
+                      _buildSectionTitle(
+                        Icons.personal_injury,
+                        'Zonas de Dolor',
+                      ),
                       Text(painZones, style: const TextStyle(fontSize: 15)),
                       const SizedBox(height: 24),
 
@@ -168,18 +225,34 @@ class ClinicalHistoryListScreen extends StatelessWidget {
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: Colors.yellow.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.yellow.shade600)),
-                        child: const Text('📝 Anotaciones adicionales: (Próximamente dinámicas)', style: TextStyle(color: Colors.brown, fontStyle: FontStyle.italic)),
+                        decoration: BoxDecoration(
+                          color: Colors.yellow.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.yellow.shade600),
+                        ),
+                        child: const Text(
+                          '📝 Anotaciones adicionales: (Próximamente dinámicas)',
+                          style: TextStyle(
+                            color: Colors.brown,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 24),
 
                       // Acordeón para la Transcripción y el Audio
                       ExpansionTile(
                         tilePadding: EdgeInsets.zero,
-                        title: const Text('Ver transcripción y audio original', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                        title: const Text(
+                          'Ver transcripción y audio original',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
                         children: [
                           if (audioUrl != null && audioUrl.isNotEmpty)
-                          CustomAudioPlayer(audioUrl: audioUrl)
+                            CustomAudioPlayer(audioUrl: audioUrl),
                         ],
                       ),
                     ],
@@ -200,7 +273,13 @@ class ClinicalHistoryListScreen extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: Colors.grey.shade700),
           const SizedBox(width: 8),
-          Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade800,
+            ),
+          ),
         ],
       ),
     );
@@ -261,7 +340,9 @@ class _CustomAudioPlayerState extends State<CustomAudioPlayer> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(_isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill),
+            icon: Icon(
+              _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
+            ),
             color: Colors.teal,
             iconSize: 36,
             onPressed: () async {
@@ -287,7 +368,10 @@ class _CustomAudioPlayerState extends State<CustomAudioPlayer> {
           ),
           Text(
             _formatDuration(_position),
-            style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Colors.teal,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(width: 8),
         ],

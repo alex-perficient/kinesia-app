@@ -21,7 +21,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
   final TextEditingController _routineTitleController = TextEditingController();
   
   // Lista de controladores para los ejercicios dinámicos
-  List<Map<String, TextEditingController>> _exercises = [];
+  final List<Map<String, TextEditingController>> _exercises = [];
 
   @override
   void initState() {
@@ -93,10 +93,11 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
+      if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al guardar: $e')),
       );
-    }
+    }}
   }
 
   @override

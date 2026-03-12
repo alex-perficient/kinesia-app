@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class NotificationService {
   // Función maestra para enviar notificaciones a cualquier usuario
@@ -16,7 +17,7 @@ class NotificationService {
         'timestamp': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print('Error al enviar notificación: $e');
+      debugPrint('Error al enviar notificación: $e');
     }
   }
 
@@ -28,7 +29,7 @@ class NotificationService {
           .doc(notificationId)
           .update({'isRead': true});
     } catch (e) {
-      print('Error al actualizar notificación: $e');
+      debugPrint('Error al actualizar notificación: $e');
     }
   }
 }

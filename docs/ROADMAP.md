@@ -12,15 +12,15 @@
 
 ## 🛠️ Fase de Estabilización (Deuda Técnica)
 - [x] Archivar/Desactivar Pacientes (Soft Delete)
-- [x] Editar/Eliminar Rutinas Asignadas (PENDIENTE REVISAR SI SE REQUIERE EDITAR RUTINAS)
-- [ ] Eliminar Notas Clínicas Duplicadas
+- [ ] Editar/Eliminar Rutinas Asignadas (*PENDIENTE REVISAR SI SE REQUIERE EDITAR RUTINAS*)
+- [x] Eliminar Notas Clínicas Duplicadas
 
 ## 🚧 Fase 6.2: Modelo de Negocio
-- [ ] Reglas de control de uso de IA (Contador en Firebase)
-- [ ] Bloqueos y pantallas Freemium vs Premium
+- [x] Reglas de control de uso de IA (Contador en Firebase)
+- [ ] Bloqueos y pantallas Freemium vs Premium *Revisar si manda los whatsapps y empezar a subirlo a Playstore*
 
 ## 🎨 Fase 7: UI/UX y Retención
-- [ ] Estados vacíos (Empty States) ilustrados
+- [x] Estados vacíos (Empty States) ilustrados
 - [ ] Shimmer/Skeleton Loaders
 - [ ] Gamificación básica (Rachas de días para el paciente)
 
@@ -30,11 +30,29 @@
 - [ ] **Cumplimiento Normativo (Expediente Clínico):** Integrar una pantalla de "Aviso de Privacidad / Consentimiento" donde el paciente acepte que sus datos y audios serán procesados por IA.
 - [ ] **Bloqueo de Sesiones:** Asegurar el cierre de sesión automático tras inactividad prolongada en el dispositivo del fisio por tratarse de datos sensibles.
 
-## 🚀 Fase 8: Producción
+## 🚀 Fase 8: Producción Interna (MVP)
+- [x] Generación de APK para distribución directa (WhatsApp/Email).
+- [ ] Pruebas de campo con el primer fisioterapeuta real.
+- [ ] Recopilación de feedback y ajuste de flujos.
+- [ ] Borrado masivo de base de datos (Wipe) para limpiar datos de prueba.
 - [ ] Generación de APK/App Bundle final
 - [ ] Despliegue en Firebase App Distribution para testers
 
----
+## 🏛️ Fase 9: Preparación para Google Play Store (Lanzamiento Oficial)
+*Requisitos obligatorios de Google antes de publicar la app al público.*
+
+**Seguridad y Legal:**
+- [ ] **Reglas de Firebase:** Bloquear Firestore y Storage para que nadie pueda acceder sin autenticación ni leer expedientes ajenos.
+- [ ] **Landing Page y Aviso de Privacidad:** Crear una página web sencilla de Mon TI Labs alojando el aviso de privacidad legal (Exigencia de Google para apps de salud).
+- [ ] **Consentimiento de IA:** Pantalla obligatoria dentro de la app donde el paciente acepta que su voz y datos serán procesados por Inteligencia Artificial.
+
+**Modelo de Negocio y Políticas:**
+- [ ] **Pasarela de Pagos (Cumplimiento):** Reemplazar el botón de WhatsApp por un enlace externo a Stripe (fuera de la app) o integrar Google Play Billing (pagando el 15% de comisión) para evitar bloqueos por venta de bienes digitales.
+
+**Consola de Google Play:**
+- [ ] **Material Promocional (Store Listing):** Diseñar el ícono en alta resolución (512x512), capturas de pantalla promocionales y banner principal.
+- [ ] **Pruebas Cerradas (Regla de los 20 Testers):** Registrar a 20 personas con cuenta de Google para que tengan la app instalada y opt-in durante 14 días continuos.
+- [ ] **Compilación Final (.aab):** Generar el archivo Android App Bundle (`.aab`), que es el formato moderno y obligatorio que exige Google, reemplazando al `.apk`.
 
 ## 🔮 Backlog / Lluvia de Ideas (Futuros Features a evaluar)
 *Estas son características de alto impacto que se desarrollarán a mediano/largo plazo para escalar Kines.ia.*

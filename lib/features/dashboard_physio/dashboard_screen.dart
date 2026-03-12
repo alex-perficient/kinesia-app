@@ -15,9 +15,14 @@ class DashboardPhysioScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kines.ia', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Kines.ia',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
-          NotificationBell(userId: currentUserId), // Usa la variable de tu fisio logueado
+          NotificationBell(
+            userId: currentUserId,
+          ), // Usa la variable de tu fisio logueado
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Cerrar Sesión',
@@ -36,8 +41,12 @@ class DashboardPhysioScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text('Error al cargar la información del perfil.'));
+          if (snapshot.hasError ||
+              !snapshot.hasData ||
+              !snapshot.data!.exists) {
+            return const Center(
+              child: Text('Error al cargar la información del perfil.'),
+            );
           }
 
           // Extraemos los datos del documento
@@ -55,10 +64,13 @@ class DashboardPhysioScreen extends StatelessWidget {
                 // Sección de Bienvenida y Estado del Plan
                 Text(
                   'Hola, $physioName 👋',
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                
+
                 // Tarjeta de Resumen
                 Card(
                   elevation: 2,
@@ -74,8 +86,8 @@ class DashboardPhysioScreen extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      plan == 'pro' 
-                          ? 'Pacientes ilimitados y funciones IA' 
+                      plan == 'pro'
+                          ? 'Pacientes ilimitados y funciones IA'
                           : '$patientCount / $maxPatients pacientes (Mejora a Pro para ilimitados)',
                     ),
                   ),
@@ -88,7 +100,7 @@ class DashboardPhysioScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const Divider(),
-                
+
                 // Placeholder temporal para la lista de pacientes
                 // Lista Reactiva de Pacientes
                 Expanded(
@@ -97,19 +109,26 @@ class DashboardPhysioScreen extends StatelessWidget {
                     stream: FirebaseFirestore.instance
                         .collection('patients')
                         .where('physioId', isEqualTo: currentUserId)
-                        .where('status', isEqualTo: 'active')        // NUEVO: Solo los activos
+                        .where(
+                          'status',
+                          isEqualTo: 'active',
+                        ) // NUEVO: Solo los activos
                         // Por ahora no usamos .orderBy() para no forzar la creación manual de índices en Firebase
                         .snapshots(),
                     builder: (context, patientSnapshot) {
                       // 1. Mientras carga la primera vez
-                      if (patientSnapshot.connectionState == ConnectionState.waiting) {
+                      if (patientSnapshot.connectionState ==
+                          ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
 
                       // 2. Si hay un error de conexión o permisos
                       if (patientSnapshot.hasError) {
                         return const Center(
-                          child: Text('Error al cargar la lista de pacientes.', style: TextStyle(color: Colors.red)),
+                          child: Text(
+                            'Error al cargar la lista de pacientes.',
+                            style: TextStyle(color: Colors.red),
+                          ),
                         );
                       }
 
@@ -117,12 +136,70 @@ class DashboardPhysioScreen extends StatelessWidget {
                       final patientDocs = patientSnapshot.data?.docs ?? [];
 
                       // 4. Si la consulta está vacía (0 pacientes)
+                      // Si no hay pacientes activos, mostramos el Empty State Premium
                       if (patientDocs.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'Aún no tienes pacientes registrados.\nToca el botón + para empezar.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey, fontSize: 16),
+                        return Center(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(32.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Ícono ilustrativo grande y suave
+                                Container(
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: Colors.teal.shade50,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.group_add_outlined,
+                                    size: 80,
+                                    color: Colors.teal.shade300,
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+
+                                // Título motivador
+                                const Text(
+                                  'Tu consultorio está listo',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.teal,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Explicación de valor y guía visual
+                                const Text(
+                                  'Aún no tienes pacientes activos en tu lista. Toca el botón en la esquina inferior derecha para registrar a tu primer paciente y comenzar a estructurar expedientes con Inteligencia Artificial.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 40),
+
+                                // Flecha dinámica apuntando al FAB (Bottom Right)
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 32.0),
+                                    child: Transform.rotate(
+                                      // Rota la flecha hacia abajo a la derecha (↘)
+                                      angle: -0.5,
+                                      child: Icon(
+                                        Icons.arrow_downward_rounded,
+                                        size: 48,
+                                        color: Colors.teal.shade200,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       }
@@ -132,60 +209,83 @@ class DashboardPhysioScreen extends StatelessWidget {
                         itemCount: patientDocs.length,
                         itemBuilder: (context, index) {
                           // Extraemos los datos de cada paciente
-                          final patientData = patientDocs[index].data() as Map<String, dynamic>;
-                          final String patientId = patientDocs[index].id; // ¡Agrega esta línea clave!
-                          final String name = patientData['fullName'] ?? 'Sin nombre';
-                          final String status = patientData['status'] ?? 'active';
+                          final patientData =
+                              patientDocs[index].data() as Map<String, dynamic>;
+                          final String patientId = patientDocs[index]
+                              .id; // ¡Agrega esta línea clave!
+                          final String name =
+                              patientData['fullName'] ?? 'Sin nombre';
+                          final String status =
+                              patientData['status'] ?? 'active';
 
                           return Card(
                             elevation: 1,
                             margin: const EdgeInsets.symmetric(vertical: 6),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               leading: CircleAvatar(
                                 backgroundColor: Colors.teal.shade100,
                                 radius: 24,
                                 child: Text(
                                   name.isNotEmpty ? name[0].toUpperCase() : '?',
                                   style: const TextStyle(
-                                    color: Colors.teal, 
+                                    color: Colors.teal,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 20
+                                    fontSize: 20,
                                   ),
                                 ),
                               ),
                               title: Text(
-                                name, 
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+                                name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
                               ),
                               subtitle: Row(
                                 children: [
                                   Icon(
-                                    status == 'active' ? Icons.check_circle : Icons.cancel,
+                                    status == 'active'
+                                        ? Icons.check_circle
+                                        : Icons.cancel,
                                     size: 16,
-                                    color: status == 'active' ? Colors.green : Colors.grey,
+                                    color: status == 'active'
+                                        ? Colors.green
+                                        : Colors.grey,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     status == 'active' ? 'Activo' : 'Inactivo',
-                                    style: TextStyle(color: status == 'active' ? Colors.green : Colors.grey),
+                                    style: TextStyle(
+                                      color: status == 'active'
+                                          ? Colors.green
+                                          : Colors.grey,
+                                    ),
                                   ),
                                 ],
                               ),
-                              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                              trailing: const Icon(
+                                Icons.chevron_right,
+                                color: Colors.grey,
+                              ),
                               onTap: () {
-                             // Navegamos al perfil pasando el ID y el Nombre
-                             Navigator.push(
-                               context,
-                               MaterialPageRoute(
-                                 builder: (context) => PatientProfileScreen(
-                                   patientId: patientId,
-                                   patientName: name,
-                                 ),
-                               ),
-                             );
-                           },
+                                // Navegamos al perfil pasando el ID y el Nombre
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PatientProfileScreen(
+                                      patientId: patientId,
+                                      patientName: name,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           );
                         },
@@ -204,7 +304,9 @@ class DashboardPhysioScreen extends StatelessWidget {
           // Navegamos a la pantalla de crear paciente
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const CreatePatientScreen()),
+            MaterialPageRoute(
+              builder: (context) => const CreatePatientScreen(),
+            ),
           );
         },
         backgroundColor: Colors.teal,
