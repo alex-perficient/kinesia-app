@@ -23,6 +23,12 @@
 - [x] Estados vacíos (Empty States) ilustrados
 - [ ] Shimmer/Skeleton Loaders
 - [ ] Gamificación básica (Rachas de días para el paciente)
+- [ ] Rachas (Streaks) al estilo Duolingo (Rachas de días para el paciente)
+- [ ] Sistema de Logros (Badges): Insignias visuales que se desbloquean al cumplir hitos. Ej: "Rodilla de Titanio" (10 ejercicios de pierna completados) o "Guerrero del RPE" (registrar 5 rutinas con esfuerzo máximo).
+- [ ] Recompensas y Lealtad: Un sistema donde la constancia se traduce en puntos. Al llegar a cierta meta, la app les genera un cupón digital válido por un descuento en su próxima terapia presencial o descarga muscular.
+- [ ] Micro-interacciones (Para Fase 7): Lluvia de confeti en la pantalla y una vibración (haptic feedback) en el celular justo en el instante en que le dan "Guardar" a su bitácora de entrenamiento.
+
+
 
 ## 🛡️ Fase de Seguridad y Privacidad de Datos
 - [ ] **Reglas de Firebase (Firestore & Storage):** Cerrar el acceso público. Configurar reglas para que un paciente solo pueda leer su propio documento y un fisio solo pueda leer/escribir sobre los pacientes que le pertenecen (`physioId == auth.uid`).
@@ -37,6 +43,7 @@
 - [ ] Borrado masivo de base de datos (Wipe) para limpiar datos de prueba.
 - [ ] Generación de APK/App Bundle final
 - [ ] Despliegue en Firebase App Distribution para testers
+- [ ] Login de Google y Apple
 
 ## 🏛️ Fase 9: Preparación para Google Play Store (Lanzamiento Oficial)
 *Requisitos obligatorios de Google antes de publicar la app al público.*

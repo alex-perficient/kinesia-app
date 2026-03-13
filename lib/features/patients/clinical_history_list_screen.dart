@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shimmer/shimmer.dart';
 
 class ClinicalHistoryListScreen extends StatelessWidget {
   final String patientId;
@@ -78,7 +79,11 @@ class ClinicalHistoryListScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: 3, // Mostramos 3 tarjetas médicas fantasma
+              itemBuilder: (context, index) => const ClinicalHistoryShimmer(),
+            );
           }
 
           if (snapshot.hasError) {
@@ -375,6 +380,77 @@ class _CustomAudioPlayerState extends State<CustomAudioPlayer> {
           ),
           const SizedBox(width: 8),
         ],
+      ),
+    );
+  }
+}
+
+// NUEVO: El molde animado para el Historial Clínico
+class ClinicalHistoryShimmer extends StatelessWidget {
+  const ClinicalHistoryShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 24),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cabecera Fantasma (Diagnóstico y Fecha)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Shimmer.fromColors(
+                  baseColor: Colors.grey.shade300,
+                  highlightColor: Colors.grey.shade100,
+                  child: Container(height: 20, width: 150, color: Colors.white),
+                ),
+                Shimmer.fromColors(
+                  baseColor: Colors.grey.shade300,
+                  highlightColor: Colors.grey.shade100,
+                  child: Container(
+                    height: 30,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24, thickness: 1),
+            // Líneas de texto fantasma (Objetivos y Dolor)
+            Shimmer.fromColors(
+              baseColor: Colors.grey.shade300,
+              highlightColor: Colors.grey.shade100,
+              child: Container(height: 16, width: 100, color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+            Shimmer.fromColors(
+              baseColor: Colors.grey.shade300,
+              highlightColor: Colors.grey.shade100,
+              child: Container(
+                height: 14,
+                width: double.infinity,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Shimmer.fromColors(
+              baseColor: Colors.grey.shade300,
+              highlightColor: Colors.grey.shade100,
+              child: Container(height: 16, width: 120, color: Colors.white),
+            ),
+          ],
+        ),
       ),
     );
   }

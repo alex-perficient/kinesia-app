@@ -5,6 +5,7 @@ import 'create_routine_screen.dart'; // Para crear la rutina
 import 'physio_routine_detail_screen.dart';
 import 'clinical_evaluation_screen.dart';
 import 'clinical_history_list_screen.dart';
+import 'package:shimmer/shimmer.dart';
 
 class PatientProfileScreen extends StatelessWidget {
   final String patientId;
@@ -177,7 +178,12 @@ class PatientProfileScreen extends StatelessWidget {
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: 4, // 4 rutinas fantasma
+                      itemBuilder: (context, index) =>
+                          const RoutineCardShimmer(),
+                    );
                   }
 
                   if (snapshot.hasError) {
@@ -235,20 +241,20 @@ class PatientProfileScreen extends StatelessWidget {
                             // Opcional: Si en esta pantalla TIENES un FloatingActionButton,
                             // puedes pegar aquí el mismo código de la flecha que usamos en el Dashboard.
                             Align(
-                                  alignment: Alignment.centerRight,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(right: 32.0),
-                                    child: Transform.rotate(
-                                      // Rota la flecha hacia abajo a la derecha (↘)
-                                      angle: -0.5,
-                                      child: Icon(
-                                        Icons.arrow_downward_rounded,
-                                        size: 48,
-                                        color: Colors.teal.shade200,
-                                      ),
-                                    ),
+                              alignment: Alignment.centerRight,
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 32.0),
+                                child: Transform.rotate(
+                                  // Rota la flecha hacia abajo a la derecha (↘)
+                                  angle: -0.5,
+                                  child: Icon(
+                                    Icons.arrow_downward_rounded,
+                                    size: 48,
+                                    color: Colors.teal.shade200,
                                   ),
                                 ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -351,6 +357,57 @@ class PatientProfileScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.fitness_center),
         label: const Text('Nueva Rutina'),
+      ),
+    );
+  }
+}
+
+// NUEVO: El molde animado para las Rutinas
+class RoutineCardShimmer extends StatelessWidget {
+  const RoutineCardShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            height: 50,
+            width: 50,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        title: Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            height: 16,
+            width: double.infinity,
+            color: Colors.white,
+          ),
+        ),
+        subtitle: Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            height: 14,
+            width: 150,
+            color: Colors.white,
+            margin: const EdgeInsets.only(top: 8),
+          ),
+        ),
       ),
     );
   }
