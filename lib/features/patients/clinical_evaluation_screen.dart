@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
 import '../../services/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ClinicalEvaluationScreen extends StatefulWidget {
   final String patientId;
@@ -84,7 +85,8 @@ class _ClinicalEvaluationScreenState extends State<ClinicalEvaluationScreen> {
     setState(() => _isAnalyzing = true);
 
     try {
-      const apiKey = 'AIzaSyCBf7MHxG9ja12hsXxFeeW_ZkreDOAbVCY'; 
+      final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+     // const apiKey = GEMINI_API_KEY; 
       
       final model = GenerativeModel(
         model: 'gemini-3-flash-preview',

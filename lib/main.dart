@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'features/auth/auth_gate.dart'; // ¡Agregamos esta importación!
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   // 1. Fundamental: Le dice a Flutter que espere a que los canales nativos estén listos
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Cargamos los secretos antes de arrancar
+  await dotenv.load(fileName: ".env");
 
   // 2. Inicializa Firebase con los IDs mágicos que te arrojó la consola
   await Firebase.initializeApp(

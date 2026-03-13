@@ -21,12 +21,12 @@
 
 ## 🎨 Fase 7: UI/UX y Retención
 - [x] Estados vacíos (Empty States) ilustrados
-- [ ] Shimmer/Skeleton Loaders
+- [x] Shimmer/Skeleton Loaders
 - [ ] Gamificación básica (Rachas de días para el paciente)
 - [ ] Rachas (Streaks) al estilo Duolingo (Rachas de días para el paciente)
 - [ ] Sistema de Logros (Badges): Insignias visuales que se desbloquean al cumplir hitos. Ej: "Rodilla de Titanio" (10 ejercicios de pierna completados) o "Guerrero del RPE" (registrar 5 rutinas con esfuerzo máximo).
 - [ ] Recompensas y Lealtad: Un sistema donde la constancia se traduce en puntos. Al llegar a cierta meta, la app les genera un cupón digital válido por un descuento en su próxima terapia presencial o descarga muscular.
-- [ ] Micro-interacciones (Para Fase 7): Lluvia de confeti en la pantalla y una vibración (haptic feedback) en el celular justo en el instante en que le dan "Guardar" a su bitácora de entrenamiento.
+- [x] Micro-interacciones (Para Fase 7): Lluvia de confeti en la pantalla y una vibración (haptic feedback) en el celular justo en el instante en que le dan "Guardar" a su bitácora de entrenamiento.
 
 
 
