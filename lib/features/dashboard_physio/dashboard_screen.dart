@@ -19,6 +19,9 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   
+  // NUEVO: Variable para el filtro actual
+  String _selectedFilter = 'Todos'; // Opciones: 'Todos', 'Clínica', 'Fitness'
+  
   // NUEVO: Variables para guardar la conexión a Firebase
   late Stream<DocumentSnapshot> _physioStream;
   late Stream<QuerySnapshot> _patientsStream;
@@ -144,6 +147,35 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                   ),
                 ),
 
+                // NUEVO: LOS FILTROS RÁPIDOS (Chips)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Row(
+                    children: ['Todos', 'Clínica', 'Fitness'].map((String filter) {
+                      final isSelected = _selectedFilter == filter;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ChoiceChip(
+                          label: Text(filter),
+                          selected: isSelected,
+                          selectedColor: Colors.teal,
+                          labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : Colors.grey.shade800,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          backgroundColor: Colors.grey.shade200,
+                          onSelected: (bool selected) {
+                            setState(() {
+                              _selectedFilter = filter;
+                            });
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
                     stream: _patientsStream, // ¡Aquí también! FirebaseFirestore.instance //ya se coloco al inicio el resto del codigo
@@ -163,11 +195,31 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                       final patientDocs = patientSnapshot.data?.docs ?? [];
 
                       // 4. EL FILTRO LOCAL MÁGICO
+                      // EL FILTRO LOCAL MÁGICO (Búsqueda + Categoría)
                       final filteredDocs = patientDocs.where((doc) {
                         final data = doc.data() as Map<String, dynamic>;
                         final name = (data['fullName'] ?? '').toString().toLowerCase();
-                        return name.contains(_searchQuery);
+                        
+                        // Si el paciente no tiene tipo asignado aún, asumimos que es de Clínica
+                        final String patientType = data['patientType'] ?? 'Clínica'; 
+                        
+                        // 1. ¿Coincide con la búsqueda de texto?
+                        final matchesSearch = name.contains(_searchQuery);
+                        
+                        // 2. ¿Coincide con el chip seleccionado?
+                        final matchesFilter = _selectedFilter == 'Todos' || patientType == _selectedFilter;
+
+                        return matchesSearch && matchesFilter;
                       }).toList();
+
+                      //quitar cuando funcione lo demas.
+                    /**   final filteredDocs = patientDocs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final name = (data['fullName'] ?? '').toString().toLowerCase();
+                        return name.contains(_searchQuery);
+                      }).toList();**/
+
+
 
                       // Estado 1: Absolutamente 0 pacientes en la base de datos (Tu Empty State)
                       if (patientDocs.isEmpty) {

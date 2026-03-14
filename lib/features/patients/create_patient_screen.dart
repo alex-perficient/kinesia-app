@@ -14,9 +14,9 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
-  // NUEVA VARIABLE: Por defecto será Clínico (Rehabilitación)
-  String _selectedProfile = 'clinical'; 
+  // NUEVO: Variable para el tipo de paciente
+  String _selectedPatientType = 'Clínica'; 
+  final List<String> _patientTypes = ['Clínica', 'Fitness'];
   
   bool _isLoading = false;
   
@@ -78,8 +78,10 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
         'fullName': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'status': 'active',
-        'profileType': _selectedProfile, // ¡AQUÍ ESTÁ LA MAGIA!
+       // 'profileType': _selectedProfile, // ¡AQUÍ ESTÁ LA MAGIA!
         'createdAt': FieldValue.serverTimestamp(),
+        // ¡NUEVA LÍNEA CLAVE!
+        'patientType': _selectedPatientType,
       });
 
       // 6. Actualizar el contador del fisio
@@ -137,31 +139,29 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
             ),
             const SizedBox(height: 16),
 
-            // NUEVO SELECTOR DE PERFIL
-            DropdownButtonFormField<String>(
-              initialValue: _selectedProfile,
-              decoration: const InputDecoration(
-                labelText: 'Tipo de Paciente / Enfoque',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.category),
+            // NUEVO: Selector de Tipo de Paciente
+              DropdownButtonFormField<String>(
+                value: _selectedPatientType,
+                decoration: const InputDecoration(
+                  labelText: 'Tipo de Enfoque / Paciente',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.category_outlined),
+                ),
+                items: _patientTypes.map((String type) {
+                  return DropdownMenuItem<String>(
+                    value: type,
+                    child: Text(type),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _selectedPatientType = newValue;
+                    });
+                  }
+                },
               ),
-              items: const [
-                DropdownMenuItem(
-                  value: 'clinical',
-                  child: Text('Clínico (Rehabilitación / Lesión)'),
-                ),
-                DropdownMenuItem(
-                  value: 'fitness',
-                  child: Text('Fitness (Fuerza / Rendimiento)'),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedProfile = value!;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
             TextField(
               controller: _passwordController,

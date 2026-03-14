@@ -45,6 +45,24 @@
 - [ ] Despliegue en Firebase App Distribution para testers
 - [ ] Login de Google y Apple
 
+## 📋 BACKLOG DE PRODUCTO: Feedback del Fisioterapeuta (Sprint Actual)
+
+### 🏗️ Épica 1: Reestructuración de la Interfaz (Fundación UI)
+*Prioridad: ALTA | Status: En Progreso*
+- [ ] **1.1 Navegación Principal (Bottom Nav):** Separar los módulos de la app en pestañas (Pacientes, Calendario, Biblioteca, Perfil) para mejor organización espacial.
+- [ ] **1.2 Filtros de Pacientes:** Agregar "Chips" o botones de filtro rápido en el Dashboard para alternar entre pacientes de "Rehabilitación" y "Fitness".
+
+### 🧠 Épica 2: Evolución del Modelo de Datos (Core)
+*Prioridad: ALTA | Status: Pendiente (Requiere migración de base de datos)*
+- [ ] **2.1 Flexibilidad de Días:** Reemplazar el esquema rígido de días de la semana (Lunes, Martes) por "Día 1, Día 2, etc.".
+- [ ] **2.2 Tracking de Adherencia:** Implementar pop-up de seguimiento si el paciente salta un día en el orden establecido, requiriendo justificación.
+- [ ] **2.3 Métricas Granulares por Ejercicio:** Mover las escalas (EVA, RPE, RIR) y parámetros (tiempo, peso, reps) de un modelo "por rutina" a un modelo "por ejercicio", soportando variables dinámicas (fuerza vs cardio).
+
+### 🚀 Épica 3: Nuevos Módulos Mayores (Features Premium)
+*Prioridad: MEDIA | Status: Pendiente*
+- [ ] **3.1 Biblioteca de Rutinas (Templates):** Crear una colección guardada por el fisio para clonar y asignar rutinas base a múltiples pacientes con ligeras variaciones.
+- [ ] **3.2 Calendario de Asignaciones (Vista Global):** Un dashboard diario para el fisio donde visualice todas las actividades y pacientes programados para la fecha actual.
+
 ## 🏛️ Fase 9: Preparación para Google Play Store (Lanzamiento Oficial)
 *Requisitos obligatorios de Google antes de publicar la app al público.*
 

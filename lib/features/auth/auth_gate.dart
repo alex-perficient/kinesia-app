@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_screen.dart';
-import '../dashboard_physio/dashboard_screen.dart';
+//import '../dashboard_physio/dashboard_screen.dart';
+import '../dashboard_physio/main_physio_screen.dart';
 import '../patient_view/patient_home_screen.dart';
 
 class AuthGate extends StatelessWidget {
@@ -35,7 +36,7 @@ class AuthGate extends StatelessWidget {
 
             // Si el documento existe en la colección de fisios...
             if (roleSnapshot.hasData && roleSnapshot.data!.exists) {
-              return const DashboardPhysioScreen(); // Entra el Fisioterapeuta
+              return const MainPhysioScreen(); //DashboardPhysioScreen(); // Entra el Fisioterapeuta
             } else {
               // Si no existe, por descarte es un paciente
               return const PatientHomeScreen(); // Entra el Paciente
