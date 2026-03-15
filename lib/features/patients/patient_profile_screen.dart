@@ -6,6 +6,7 @@ import 'physio_routine_detail_screen.dart';
 import 'clinical_evaluation_screen.dart';
 import 'clinical_history_list_screen.dart';
 import 'package:shimmer/shimmer.dart';
+import 'select_template_screen.dart';
 
 class PatientProfileScreen extends StatelessWidget {
   final String patientId;
@@ -341,22 +342,70 @@ class PatientProfileScreen extends StatelessWidget {
         ),
       ),
       // Botón extendido para dejar muy clara la acción principal
+      // NUEVO BOTÓN FLOTANTE INTELIGENTE (Bottom Sheet)
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CreateRoutineScreen(
-                patientId: patientId,
-                patientName: patientName,
+          showModalBottomSheet(
+            context: context,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            builder: (context) => SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text('Asignar Plan de Rehabilitación', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                  
+                  // OPCIÓN A: IMPORTAR PLANTILLA
+                  ListTile(
+                    leading: const Icon(Icons.library_books, color: Colors.teal),
+                    title: const Text('Importar desde Biblioteca'),
+                    subtitle: const Text('Usa una plantilla preconfigurada'),
+                    onTap: () {
+                      Navigator.pop(context); // Cierra el menú deslizable
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectTemplateScreen(
+                            patientId: patientId, 
+                            patientName: patientName,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  
+                  // OPCIÓN B: CREAR DESDE CERO (Tu flujo original)
+                  ListTile(
+                    leading: const Icon(Icons.edit, color: Colors.blue),
+                    title: const Text('Crear desde cero'),
+                    subtitle: const Text('Diseña una rutina paso a paso'),
+                    onTap: () {
+                      Navigator.pop(context); // Cierra el menú deslizable
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CreateRoutineScreen(
+                            patientId: patientId,
+                            patientName: patientName,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
               ),
             ),
           );
         },
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.fitness_center),
-        label: const Text('Nueva Rutina'),
+        icon: const Icon(Icons.add_task), // Ícono actualizado para que coincida con la acción
+        label: const Text('Asignar Rutina'),
       ),
     );
   }

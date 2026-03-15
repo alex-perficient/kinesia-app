@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 // Asegúrate de que esta ruta apunte correctamente a tu archivo actual:
 import 'dashboard_screen.dart'; 
+import 'routine_library_screen.dart';
 
 class MainPhysioScreen extends StatefulWidget {
   const MainPhysioScreen({super.key});
@@ -16,7 +17,7 @@ class _MainPhysioScreenState extends State<MainPhysioScreen> {
   final List<Widget> _screens = [
     const DashboardPhysioScreen(), // Índice 0: Tu pantalla actual (Intacta)
     const Center(child: Text('📅 Calendario (En Construcción)', style: TextStyle(fontSize: 18, color: Colors.grey))), // Índice 1
-    const Center(child: Text('📚 Biblioteca (En Construcción)', style: TextStyle(fontSize: 18, color: Colors.grey))), // Índice 2
+    const RoutineLibraryScreen(), // Índice 2
     const Center(child: Text('⚙️ Perfil y Ajustes (En Construcción)', style: TextStyle(fontSize: 18, color: Colors.grey))), // Índice 3
   ];
 
