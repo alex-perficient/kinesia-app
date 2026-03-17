@@ -18,10 +18,10 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
   // 2. VARIABLES DE BÚSQUEDA
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
-  
+
   // NUEVO: Variable para el filtro actual
   String _selectedFilter = 'Todos'; // Opciones: 'Todos', 'Clínica', 'Fitness'
-  
+
   // NUEVO: Variables para guardar la conexión a Firebase
   late Stream<DocumentSnapshot> _physioStream;
   late Stream<QuerySnapshot> _patientsStream;
@@ -31,12 +31,12 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
     super.initState();
     // Preparamos las conexiones UNA SOLA VEZ
     final currentUserId = FirebaseAuth.instance.currentUser!.uid;
-    
+
     _physioStream = FirebaseFirestore.instance
         .collection('physiotherapists')
         .doc(currentUserId)
         .snapshots();
-        
+
     _patientsStream = FirebaseFirestore.instance
         .collection('patients')
         .where('physioId', isEqualTo: currentUserId)
@@ -56,7 +56,10 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kines.ia', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Kines.ia',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           NotificationBell(userId: currentUserId),
           IconButton(
@@ -67,14 +70,19 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
         ],
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: _physioStream, // ¡Mucho más limpio! //FirebaseFirestore.instance.collection('physiotherapists').doc(currentUserId).snapshots(),
+        stream:
+            _physioStream, // ¡Mucho más limpio! //FirebaseFirestore.instance.collection('physiotherapists').doc(currentUserId).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text('Error al cargar la información del perfil.'));
+          if (snapshot.hasError ||
+              !snapshot.hasData ||
+              !snapshot.data!.exists) {
+            return const Center(
+              child: Text('Error al cargar la información del perfil.'),
+            );
           }
 
           final physioData = snapshot.data!.data() as Map<String, dynamic>;
@@ -88,7 +96,13 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Hola, $physioName 👋', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                Text(
+                  'Hola, $physioName 👋',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 8),
 
                 Card(
@@ -113,7 +127,10 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                const Text('Tus Pacientes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Tus Pacientes',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
                 const Divider(),
 
                 // 3. LA BARRA DE BÚSQUEDA
@@ -152,7 +169,9 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: Row(
-                    children: ['Todos', 'Clínica', 'Fitness'].map((String filter) {
+                    children: ['Todos', 'Clínica', 'Fitness'].map((
+                      String filter,
+                    ) {
                       final isSelected = _selectedFilter == filter;
                       return Padding(
                         padding: const EdgeInsets.only(right: 8.0),
@@ -161,8 +180,12 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                           selected: isSelected,
                           selectedColor: Colors.teal,
                           labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : Colors.grey.shade800,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.grey.shade800,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                           backgroundColor: Colors.grey.shade200,
                           onSelected: (bool selected) {
@@ -178,18 +201,26 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
 
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
-                    stream: _patientsStream, // ¡Aquí también! FirebaseFirestore.instance //ya se coloco al inicio el resto del codigo
+                    stream:
+                        _patientsStream, // ¡Aquí también! FirebaseFirestore.instance //ya se coloco al inicio el resto del codigo
                     builder: (context, patientSnapshot) {
-                      if (patientSnapshot.connectionState == ConnectionState.waiting) {
+                      if (patientSnapshot.connectionState ==
+                          ConnectionState.waiting) {
                         // Mostramos 4 tarjetas fantasma animadas mientras carga
                         return ListView.builder(
                           itemCount: 4,
-                          itemBuilder: (context, index) => const PatientCardShimmer(),
+                          itemBuilder: (context, index) =>
+                              const PatientCardShimmer(),
                         );
                       }
 
                       if (patientSnapshot.hasError) {
-                        return const Center(child: Text('Error al cargar la lista de pacientes.', style: TextStyle(color: Colors.red)));
+                        return const Center(
+                          child: Text(
+                            'Error al cargar la lista de pacientes.',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        );
                       }
 
                       final patientDocs = patientSnapshot.data?.docs ?? [];
@@ -198,28 +229,31 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                       // EL FILTRO LOCAL MÁGICO (Búsqueda + Categoría)
                       final filteredDocs = patientDocs.where((doc) {
                         final data = doc.data() as Map<String, dynamic>;
-                        final name = (data['fullName'] ?? '').toString().toLowerCase();
-                        
+                        final name = (data['fullName'] ?? '')
+                            .toString()
+                            .toLowerCase();
+
                         // Si el paciente no tiene tipo asignado aún, asumimos que es de Clínica
-                        final String patientType = data['patientType'] ?? 'Clínica'; 
-                        
+                        final String patientType =
+                            data['patientType'] ?? 'Clínica';
+
                         // 1. ¿Coincide con la búsqueda de texto?
                         final matchesSearch = name.contains(_searchQuery);
-                        
+
                         // 2. ¿Coincide con el chip seleccionado?
-                        final matchesFilter = _selectedFilter == 'Todos' || patientType == _selectedFilter;
+                        final matchesFilter =
+                            _selectedFilter == 'Todos' ||
+                            patientType == _selectedFilter;
 
                         return matchesSearch && matchesFilter;
                       }).toList();
 
                       //quitar cuando funcione lo demas.
-                    /**   final filteredDocs = patientDocs.where((doc) {
+                      /**   final filteredDocs = patientDocs.where((doc) {
                         final data = doc.data() as Map<String, dynamic>;
                         final name = (data['fullName'] ?? '').toString().toLowerCase();
                         return name.contains(_searchQuery);
                       }).toList();**/
-
-
 
                       // Estado 1: Absolutamente 0 pacientes en la base de datos (Tu Empty State)
                       if (patientDocs.isEmpty) {
@@ -231,16 +265,34 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(color: Colors.teal.shade50, shape: BoxShape.circle),
-                                  child: Icon(Icons.group_add_outlined, size: 80, color: Colors.teal.shade300),
+                                  decoration: BoxDecoration(
+                                    color: Colors.teal.shade50,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.group_add_outlined,
+                                    size: 80,
+                                    color: Colors.teal.shade300,
+                                  ),
                                 ),
                                 const SizedBox(height: 32),
-                                const Text('Tu consultorio está listo', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal)),
+                                const Text(
+                                  'Tu consultorio está listo',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.teal,
+                                  ),
+                                ),
                                 const SizedBox(height: 16),
                                 const Text(
                                   'Aún no tienes pacientes activos en tu lista. Toca el botón en la esquina inferior derecha para registrar a tu primer paciente y comenzar a estructurar expedientes con Inteligencia Artificial.',
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                    height: 1.5,
+                                  ),
                                 ),
                                 const SizedBox(height: 40),
                                 Align(
@@ -249,7 +301,11 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                                     padding: const EdgeInsets.only(right: 32.0),
                                     child: Transform.rotate(
                                       angle: -0.5,
-                                      child: Icon(Icons.arrow_downward_rounded, size: 48, color: Colors.teal.shade200),
+                                      child: Icon(
+                                        Icons.arrow_downward_rounded,
+                                        size: 48,
+                                        color: Colors.teal.shade200,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -265,9 +321,19 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
+                              Icon(
+                                Icons.search_off,
+                                size: 64,
+                                color: Colors.grey.shade300,
+                              ),
                               const SizedBox(height: 16),
-                              Text('No se encontró a "$_searchQuery"', style: const TextStyle(color: Colors.grey, fontSize: 16)),
+                              Text(
+                                'No se encontró a "$_searchQuery"',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ],
                           ),
                         );
@@ -275,38 +341,105 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
 
                       // Estado 3: Mostrar la lista filtrada
                       return ListView.builder(
-                        itemCount: filteredDocs.length, // Usamos la lista filtrada
+                        itemCount:
+                            filteredDocs.length, // Usamos la lista filtrada
                         itemBuilder: (context, index) {
                           final patientData = filteredDocs[index].data() as Map<String, dynamic>;
                           final String patientId = filteredDocs[index].id;
                           final String name = patientData['fullName'] ?? 'Sin nombre';
-                          final String status = patientData['status'] ?? 'active';
+                          //final String status = patientData['status'] ?? 'active';
+                          final String patientType = patientData['patientType'] ?? 'Clínica';
 
                           return Card(
                             elevation: 1,
                             margin: const EdgeInsets.symmetric(vertical: 6),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               leading: CircleAvatar(
                                 backgroundColor: Colors.teal.shade100,
                                 radius: 24,
                                 child: Text(
                                   name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                  style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold, fontSize: 20),
+                                  style: const TextStyle(
+                                    color: Colors.teal,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
                                 ),
                               ),
-                              title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              title: Text(
+                                name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                               subtitle: Row(
                                 children: [
-                                  Icon(status == 'active' ? Icons.check_circle : Icons.cancel, size: 16, color: status == 'active' ? Colors.green : Colors.grey),
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                    size: 14,
+                                  ),
                                   const SizedBox(width: 4),
-                                  Text(status == 'active' ? 'Activo' : 'Inactivo', style: TextStyle(color: status == 'active' ? Colors.green : Colors.grey)),
+                                  const Text(
+                                    'Activo',
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // NUEVA ETIQUETA VISUAL
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: patientType == 'Fitness'
+                                          ? Colors.orange.shade50
+                                          : Colors.teal.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: patientType == 'Fitness'
+                                            ? Colors.orange.shade200
+                                            : Colors.teal.shade200,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      patientType,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: patientType == 'Fitness'
+                                            ? Colors.orange.shade700
+                                            : Colors.teal.shade700,
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
-                              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                              trailing: const Icon(
+                                Icons.chevron_right,
+                                color: Colors.grey,
+                              ),
                               onTap: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (context) => PatientProfileScreen(patientId: patientId, patientName: name)));
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => PatientProfileScreen(
+                                      patientId: patientId,
+                                      patientName: name,
+                                    ),
+                                  ),
+                                );
                               },
                             ),
                           );
@@ -322,7 +455,12 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const CreatePatientScreen()));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CreatePatientScreen(),
+            ),
+          );
         },
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
@@ -355,16 +493,23 @@ class PatientCardShimmer extends StatelessWidget {
         title: Shimmer.fromColors(
           baseColor: Colors.grey.shade300,
           highlightColor: Colors.grey.shade100,
-          child: Container(height: 16, width: double.infinity, color: Colors.white),
+          child: Container(
+            height: 16,
+            width: double.infinity,
+            color: Colors.white,
+          ),
         ),
         subtitle: Shimmer.fromColors(
           baseColor: Colors.grey.shade300,
           highlightColor: Colors.grey.shade100,
           child: Container(
-            height: 12, 
-            width: 100, 
-            color: Colors.white, 
-            margin: const EdgeInsets.only(top: 8, right: 100) // Margen para que se vea más corto que el título
+            height: 12,
+            width: 100,
+            color: Colors.white,
+            margin: const EdgeInsets.only(
+              top: 8,
+              right: 100,
+            ), // Margen para que se vea más corto que el título
           ),
         ),
       ),

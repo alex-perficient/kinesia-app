@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/notification_service.dart'; // Ajusta la ruta a donde tengas tu servicio
 
 class SelectTemplateScreen extends StatefulWidget {
   final String patientId;
@@ -33,6 +34,16 @@ class _SelectTemplateScreenState extends State<SelectTemplateScreen> {
         'assignedAt': FieldValue.serverTimestamp(),
         'isActive': true,
       });
+
+      try {
+        await NotificationService.sendNotification(
+          receiverId: widget.patientId,
+          title: 'Nueva rutina asignada 📋',
+          body: 'Tu fisioterapeuta te ha asignado: ${templateData['title']}',
+        );
+      } catch (e) {
+        debugPrint('Error al enviar notificación: $e');
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

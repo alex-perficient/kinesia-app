@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'features/auth/auth_gate.dart'; // ¡Agregamos esta importación!
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   // 1. Fundamental: Le dice a Flutter que espere a que los canales nativos estén listos
@@ -15,6 +16,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  await initializeDateFormatting('es', null);
 
   // 3. Arranca la aplicación
   runApp(const KinesiaApp());

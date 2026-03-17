@@ -141,7 +141,7 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
 
             // NUEVO: Selector de Tipo de Paciente
               DropdownButtonFormField<String>(
-                value: _selectedPatientType,
+                initialValue: _selectedPatientType,
                 decoration: const InputDecoration(
                   labelText: 'Tipo de Enfoque / Paciente',
                   border: OutlineInputBorder(),

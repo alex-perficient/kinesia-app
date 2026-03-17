@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'routine_history_screen.dart';
+//import 'routine_history_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../dashboard_physio/routine_progress_screen.dart';
 
 class PhysioRoutineDetailScreen extends StatelessWidget {
   final Map<String, dynamic> routineData;
@@ -60,7 +61,6 @@ class PhysioRoutineDetailScreen extends StatelessWidget {
   }
 
   
-
   @override
   Widget build(BuildContext context) {
     final String title = routineData['title'] ?? 'Detalle de Rutina';
@@ -77,28 +77,45 @@ class PhysioRoutineDetailScreen extends StatelessWidget {
             tooltip: 'Eliminar Rutina',
             onPressed: () => _deleteRoutine(context),
           ),
-          IconButton(
-            icon: const Icon(Icons.analytics),
-            tooltip: 'Ver Historial de Registros',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => RoutineHistoryScreen(
-                    routineId: routineId,
-                    routineTitle: title,
-                  ),
-                ),
-              );
-            },
-          )
+         
         ],
       ),
+      
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ¡AQUÍ ESTÁ EL BOTÓN INYECTADO!
+            Padding(
+              padding: const EdgeInsets.only(bottom: 24.0), // Separación hacia abajo
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RoutineProgressScreen(
+                          routineId: routineId, // OJO: Sin la palabra "widget."
+                          routineTitle: title,
+                          patientName: 'Paciente Activo', // Placeholder mientras no pasemos la variable
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal, 
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.analytics),
+                  label: const Text('Ver Resultados del Paciente', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            // Tu cabecera original
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -114,11 +131,18 @@ class PhysioRoutineDetailScreen extends StatelessWidget {
               ],
             ),
             const Divider(),
+            
+            // Tu lista original
             Expanded(
               child: ListView.builder(
                 itemCount: exercises.length,
                 itemBuilder: (context, index) {
                   final exercise = exercises[index] as Map<String, dynamic>;
+                  // Arreglo rápido: Si no hay YouTube URL, no lo mostramos en el texto para no ver "null"
+                  final String urlText = (exercise['youtubeUrl'] != null && exercise['youtubeUrl'].toString().isNotEmpty) 
+                      ? '\nURL: ${exercise['youtubeUrl']}' 
+                      : '';
+
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ListTile(
@@ -126,9 +150,9 @@ class PhysioRoutineDetailScreen extends StatelessWidget {
                         backgroundColor: Colors.teal.shade50,
                         child: Text('${index + 1}', style: const TextStyle(color: Colors.teal)),
                       ),
-                      title: Text(exercise['title'] ?? 'Ejercicio', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('${exercise['sets']} Series x ${exercise['reps']} Repeticiones\nURL: ${exercise['youtubeUrl']}'),
-                      isThreeLine: true,
+                      title: Text(exercise['title'] ?? exercise['name'] ?? 'Ejercicio', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text('${exercise['sets']} Series x ${exercise['reps']} Repeticiones$urlText'),
+                      isThreeLine: urlText.isNotEmpty,
                     ),
                   );
                 },
@@ -140,3 +164,4 @@ class PhysioRoutineDetailScreen extends StatelessWidget {
     );
   }
 }
+    

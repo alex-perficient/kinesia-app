@@ -29,23 +29,27 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      // Si el login es exitoso, el AuthGate (que haremos en el paso 3) 
-      // detectará el cambio automáticamente y nos sacará de esta pantalla.
+      // Si el login es exitoso, el AuthGate detectará el cambio automáticamente 
+      // y nos sacará de esta pantalla.
     } on FirebaseAuthException catch (e) {
-      setState(() {
-        // Manejo básico de errores para darle feedback al usuario
-        if (e.code == 'user-not-found') {
-          _errorMessage = 'No hay un usuario con este correo.';
-        } else if (e.code == 'wrong-password') {
-          _errorMessage = 'Contraseña incorrecta.';
-        } else {
-          _errorMessage = 'Error al iniciar sesión: ${e.message}';
-        }
-      });
+      if (mounted) { // <-- ¡NUEVO: Verificamos que la pantalla siga viva!
+        setState(() {
+          // Manejo básico de errores para darle feedback al usuario
+          if (e.code == 'user-not-found') {
+            _errorMessage = 'No hay un usuario con este correo.';
+          } else if (e.code == 'wrong-password') {
+            _errorMessage = 'Contraseña incorrecta.';
+          } else {
+            _errorMessage = 'Error al iniciar sesión: ${e.message}';
+          }
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) { // <-- ¡LA SOLUCIÓN AL ERROR ROJO!
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

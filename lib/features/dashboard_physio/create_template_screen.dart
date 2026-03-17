@@ -17,68 +17,123 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
   final List<Map<String, dynamic>> _exercises = [];
   bool _isLoading = false;
 
-  // Función para abrir una ventanita y agregar un ejercicio
+  // Función para abrir una ventanita y agregar un ejercicio con métricas y video
   void _showAddExerciseDialog() {
     final TextEditingController nameCtrl = TextEditingController();
+    final TextEditingController urlCtrl = TextEditingController(); // NUEVO: URL del video
     final TextEditingController setsCtrl = TextEditingController(text: '3');
     final TextEditingController repsCtrl = TextEditingController(text: '10');
+    
+    // Variables para los interruptores (Apagados por defecto)
+    bool askEVA = false;
+    bool askRIR = false;
+    bool askWeight = false;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Agregar Ejercicio'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'Nombre (ej. Sentadilla)', border: OutlineInputBorder()),
-              textCapitalization: TextCapitalization.sentences,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: setsCtrl,
-                    decoration: const InputDecoration(labelText: 'Series', border: OutlineInputBorder()),
-                    keyboardType: TextInputType.number,
+      builder: (context) => StatefulBuilder( // IMPORTANTE: Permite actualizar los switches en vivo
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: const Text('Agregar Ejercicio'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(labelText: 'Nombre (ej. Sentadilla)', border: OutlineInputBorder()),
+                    textCapitalization: TextCapitalization.sentences,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: repsCtrl,
-                    decoration: const InputDecoration(labelText: 'Reps / Tiempo', border: OutlineInputBorder()),
+                  const SizedBox(height: 12),
+                  // NUEVO: CAMPO DE YOUTUBE
+                  TextField(
+                    controller: urlCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Enlace de YouTube (Opcional)', 
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.smart_display, color: Colors.redAccent),
+                    ),
+                    keyboardType: TextInputType.url,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: setsCtrl,
+                          decoration: const InputDecoration(labelText: 'Series', border: OutlineInputBorder()),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: repsCtrl,
+                          decoration: const InputDecoration(labelText: 'Reps / Tiempo', border: OutlineInputBorder()),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // SECCIÓN DE MÉTRICAS GRANULARES
+                  const Text('¿Qué debe registrar el paciente?', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
+                  const SizedBox(height: 8),
+                  
+                  SwitchListTile(
+                    title: const Text('Nivel de Dolor (EVA)', style: TextStyle(fontSize: 14)),
+                    dense: true,
+                    activeThumbColor: Colors.teal,
+                    value: askEVA,
+                    onChanged: (val) => setStateDialog(() => askEVA = val),
+                  ),
+                  SwitchListTile(
+                    title: const Text('Esfuerzo (RIR / RPE)', style: TextStyle(fontSize: 14)),
+                    dense: true,
+                    activeThumbColor: Colors.teal,
+                    value: askRIR,
+                    onChanged: (val) => setStateDialog(() => askRIR = val),
+                  ),
+                  SwitchListTile(
+                    title: const Text('Peso Utilizado (kg/lb)', style: TextStyle(fontSize: 14)),
+                    dense: true,
+                    activeThumbColor: Colors.teal,
+                    value: askWeight,
+                    onChanged: (val) => setStateDialog(() => askWeight = val),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          ElevatedButton(
-            onPressed: () {
-              if (nameCtrl.text.trim().isNotEmpty) {
-                setState(() {
-                  _exercises.add({
-                    'name': nameCtrl.text.trim(),
-                    'sets': setsCtrl.text.trim(),
-                    'reps': repsCtrl.text.trim(),
-                  });
-                });
-                Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-            child: const Text('Agregar'),
-          ),
-        ],
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+              ElevatedButton(
+                onPressed: () {
+                  if (nameCtrl.text.trim().isNotEmpty) {
+                    setState(() {
+                      _exercises.add({
+                        'name': nameCtrl.text.trim(),
+                        'youtubeUrl': urlCtrl.text.trim(), // ¡Guardamos el video!
+                        'sets': setsCtrl.text.trim(),
+                        'reps': repsCtrl.text.trim(),
+                        // ¡MAGIA! Guardamos la configuración exacta para este ejercicio
+                        'askEVA': askEVA,
+                        'askRIR': askRIR,
+                        'askWeight': askWeight,
+                      });
+                    });
+                    Navigator.pop(context);
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
+                child: const Text('Agregar'),
+              ),
+            ],
+          );
+        }
       ),
     );
   }
-
   // Función para guardar toda la plantilla en Firebase
   Future<void> _saveTemplate() async {
     if (_titleController.text.trim().isEmpty || _exercises.isEmpty) {
@@ -195,7 +250,25 @@ class _CreateTemplateScreenState extends State<CreateTemplateScreen> {
                             child: Text('${index + 1}', style: const TextStyle(color: Colors.teal)),
                           ),
                           title: Text(exercise['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('${exercise['sets']} series x ${exercise['reps']}'),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${exercise['sets']} series x ${exercise['reps']}'),
+                              const SizedBox(height: 4),
+                              // Dibujamos pequeños indicadores si las métricas están activas
+                              Wrap(
+                                spacing: 6,
+                                children: [
+                                  if (exercise['askEVA'] == true) 
+                                    const Text('• Dolor', style: TextStyle(color: Colors.red, fontSize: 12)),
+                                  if (exercise['askRIR'] == true) 
+                                    const Text('• Esfuerzo', style: TextStyle(color: Colors.orange, fontSize: 12)),
+                                  if (exercise['askWeight'] == true) 
+                                    const Text('• Peso', style: TextStyle(color: Colors.blue, fontSize: 12)),
+                                ],
+                              ),
+                            ],
+                          ),
                           trailing: IconButton(
                             icon: const Icon(Icons.delete_outline, color: Colors.red),
                             onPressed: () {
