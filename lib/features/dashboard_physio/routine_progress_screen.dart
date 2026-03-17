@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'routine_charts_screen.dart';
 
 class RoutineProgressScreen extends StatelessWidget {
   final String routineId;
@@ -20,6 +21,23 @@ class RoutineProgressScreen extends StatelessWidget {
         title: const Text('Bitácora de Progreso'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.show_chart),
+            tooltip: 'Ver Gráficas',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RoutineChartsScreen(
+                    routineId: routineId,
+                    patientName: patientName,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
