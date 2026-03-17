@@ -12,7 +12,7 @@
 
 ## 🛠️ Fase de Estabilización (Deuda Técnica)
 - [x] Archivar/Desactivar Pacientes (Soft Delete)
-- [ ] Editar/Eliminar Rutinas Asignadas (*PENDIENTE REVISAR SI SE REQUIERE EDITAR RUTINAS*)
+- [x] Editar/Eliminar Rutinas Asignadas (*PENDIENTE REVISAR SI SE REQUIERE EDITAR RUTINAS*)
 - [x] Eliminar Notas Clínicas Duplicadas
 
 ## 🚧 Fase 6.2: Modelo de Negocio
@@ -38,19 +38,19 @@
 
 ## 🚀 Fase 8: Producción Interna (MVP)
 - [x] Generación de APK para distribución directa (WhatsApp/Email).
-- [ ] Pruebas de campo con el primer fisioterapeuta real.
+- [x] Pruebas de campo con el primer fisioterapeuta real.
 - [ ] Recopilación de feedback y ajuste de flujos.
 - [ ] Borrado masivo de base de datos (Wipe) para limpiar datos de prueba.
-- [ ] Generación de APK/App Bundle final
-- [ ] Despliegue en Firebase App Distribution para testers
+- [x] Generación de APK/App Bundle final
+- [x] Despliegue en Firebase App Distribution para testers
 - [ ] Login de Google y Apple
 
 ## 📋 BACKLOG DE PRODUCTO: Feedback del Fisioterapeuta (Sprint Actual)
 
 ### 🏗️ Épica 1: Reestructuración de la Interfaz (Fundación UI)
 *Prioridad: ALTA | Status: En Progreso*
-- [ ] **1.1 Navegación Principal (Bottom Nav):** Separar los módulos de la app en pestañas (Pacientes, Calendario, Biblioteca, Perfil) para mejor organización espacial.
-- [ ] **1.2 Filtros de Pacientes:** Agregar "Chips" o botones de filtro rápido en el Dashboard para alternar entre pacientes de "Rehabilitación" y "Fitness".
+- [x] **1.1 Navegación Principal (Bottom Nav):** Separar los módulos de la app en pestañas (Pacientes, Calendario, Biblioteca, Perfil) para mejor organización espacial.
+- [x] **1.2 Filtros de Pacientes:** Agregar "Chips" o botones de filtro rápido en el Dashboard para alternar entre pacientes de "Rehabilitación" y "Fitness".
 
 ### 🧠 Épica 2: Evolución del Modelo de Datos (Core)
 *Prioridad: ALTA | Status: Pendiente (Requiere migración de base de datos)*
@@ -60,8 +60,35 @@
 
 ### 🚀 Épica 3: Nuevos Módulos Mayores (Features Premium)
 *Prioridad: MEDIA | Status: Pendiente*
-- [ ] **3.1 Biblioteca de Rutinas (Templates):** Crear una colección guardada por el fisio para clonar y asignar rutinas base a múltiples pacientes con ligeras variaciones.
+- [x] **3.1 Biblioteca de Rutinas (Templates):** Crear una colección guardada por el fisio para clonar y asignar rutinas base a múltiples pacientes con ligeras variaciones.
 - [ ] **3.2 Calendario de Asignaciones (Vista Global):** Un dashboard diario para el fisio donde visualice todas las actividades y pacientes programados para la fecha actual.
+----------------------------------------------------------------------------------------------------------------
+# 📋 Backlog de Producto: Kines.ia (Mon TI Labs)
+
+## 🛡️ Épica 4: Seguridad, Privacidad y Autenticación
+- [ ] **Reglas de Firebase (Firestore & Storage):** Cerrar el acceso público. Configurar reglas estrictas (`request.auth.uid`) para que un paciente solo lea su documento y el fisio solo interactúe con los pacientes asignados a su `physioId`.
+- [ ] **Sanitización y Validación:** Implementar validadores de texto en formularios y base de datos para limitar caracteres y prevenir inyección masiva de datos.
+- [ ] **Cumplimiento Normativo Clínico:** Pantalla obligatoria de "Aviso de Privacidad / Consentimiento" para el paciente, aceptando el procesamiento de sus datos de salud y multimedia por motores de IA.
+- [ ] **Bloqueo de Sesiones Sensibles:** Auto-cierre de sesión o bloqueo por PIN/Biometría tras inactividad prolongada en el dispositivo del fisio.
+- [ ] **Autenticación:** Integrar inicio de sesión rápido con Google (Google Sign-In) para ambos roles.
+
+## 🧠 Épica 5: Monetización y Motor de Inteligencia Artificial
+- [ ] **Lógica de Suscripción (Freemium):** Implementar contadores de volumen (pacientes/rutinas). Validar que al superar la cuota gratuita, el fisio deba pagar la mensualidad de 100 MXN o, de lo contrario, restringir el acceso a funcionalidades avanzadas y de IA.
+- [ ] **Motor de Resúmenes IA (Arquitectura de Cero Costos):** Desarrollar una cola de tareas en el servidor que procese el historial del paciente en segundo plano. 
+- [ ] **Notificación de Análisis:** Avisar al fisio mediante *push notification* únicamente cuando el resumen generado por la IA esté listo para su lectura.
+
+## 📅 Épica 6: Control Clínico Avanzado (Dashboard)
+- [ ] **Calendario Mensual del Fisio:** Expandir la cinta horizontal a una vista de mes completo. Permitir programación de citas futuras y revisiones con indicadores visuales (código de colores) para días con eventos especiales.
+- [ ] **Línea de Tiempo Unificada:** Fusionar la captura de rutinas (`workout_logs`) y los reportes de bienestar emocional/físico (`daily_logs`) en una sola vista cronológica dentro del día seleccionado para dar contexto completo al fisio.
+- [ ] **Métricas Granulares Dinámicas:** Extender la captura actual (EVA, RPE, Peso) a un modelo completamente "por ejercicio", soportando campos condicionales según el tipo de ejercicio (ej. RIR, tiempo bajo tensión, repeticiones efectivas vs. cardio).
+
+## ✨ Épica 7: "Facelift" UI/UX y Retención (Capa Visual)
+- [ ] **Pulido de Interfaz Profesional:** Homologar radios de bordes, sombras, paleta cromática de la marca y estados vacíos (empty states) con ilustraciones para garantizar una experiencia de usuario *Premium*.
+- [ ] **Soporte Multimedia Libre:** Asegurar que el fisio pueda enviar fácilmente links de YouTube sugeridos o cargar sus propios videos explicativos.
+- [ ] **Gamificación (Low Priority):** Sistema de rachas o recompensas visuales para pacientes con alta adherencia al tratamiento.
+
+
+----------------------------------------------------------------------------------------------------------------
 
 ## 🏛️ Fase 9: Preparación para Google Play Store (Lanzamiento Oficial)
 *Requisitos obligatorios de Google antes de publicar la app al público.*

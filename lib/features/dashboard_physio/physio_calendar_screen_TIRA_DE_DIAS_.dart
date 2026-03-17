@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:table_calendar/table_calendar.dart'; // NUESTRO NUEVO CALENDARIO
+import 'package:intl/intl.dart';
 import '../patients/patient_profile_screen.dart';
 
 // 1. AHORA ES UN STATEFUL WIDGET PARA MANEJAR EL DÍA SELECCIONADO
@@ -13,19 +13,28 @@ class PhysioCalendarScreen extends StatefulWidget {
 }
 
 class _PhysioCalendarScreenState extends State<PhysioCalendarScreen> {
-  // Variables nativas de table_calendar
-  CalendarFormat _calendarFormat = CalendarFormat.month;
-  DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay = DateTime.now();
+  // 2. LA VARIABLE MÁGICA: El día que el fisio está viendo (por defecto, hoy)
+  DateTime _selectedDate = DateTime.now();
+  
+  // Generamos una lista de los últimos 30 días para nuestro calendario horizontal
+  late List<DateTime> _pastDays;
+
+  @override
+  void initState() {
+    super.initState();
+    // Llenamos la lista con los últimos 30 días (del más antiguo al día de hoy)
+    _pastDays = List.generate(30, (index) {
+      return DateTime.now().subtract(Duration(days: 29 - index));
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
 
-    // Calculamos el inicio y fin del día basado en el día seleccionado en el calendario
-    final targetDate = _selectedDay ?? _focusedDay;
-    final startOfDay = Timestamp.fromDate(DateTime(targetDate.year, targetDate.month, targetDate.day));
-    final endOfDay = Timestamp.fromDate(DateTime(targetDate.year, targetDate.month, targetDate.day, 23, 59, 59));
+    // 3. CALCULAMOS EL INICIO Y EL FIN DEL DÍA SELECCIONADO PARA FIREBASE
+    final startOfDay = Timestamp.fromDate(DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day));
+    final endOfDay = Timestamp.fromDate(DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 23, 59, 59));
 
     // 1. Preparamos las dos consultas a Firebase
     final workoutStream = FirebaseFirestore.instance
@@ -44,90 +53,72 @@ class _PhysioCalendarScreenState extends State<PhysioCalendarScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Agenda Global', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Actividad Global', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.teal,
         elevation: 0,
         actions: [
+          // QUICK WIN: Botón para saltar al día de hoy al instante
           IconButton(
             icon: const Icon(Icons.today),
             tooltip: 'Volver a hoy',
-            onPressed: () {
-              setState(() {
-                _focusedDay = DateTime.now();
-                _selectedDay = DateTime.now();
-              });
-            },
+            onPressed: () => setState(() => _selectedDate = DateTime.now()),
           ),
         ],
       ),
       body: Column(
         children: [
-          // NUESTRO NUEVO CALENDARIO MENSUAL DINÁMICO
+          // LA TIRA DEL CALENDARIO (Intacta)
           Container(
             color: Colors.white,
-            child: TableCalendar(
-              locale: 'es_ES', // Calendario en español
-              firstDay: DateTime.utc(2024, 1, 1), // Límite en el pasado
-              lastDay: DateTime.utc(2030, 12, 31), // Límite en el futuro para programar citas
-              focusedDay: _focusedDay,
-              calendarFormat: _calendarFormat,
-              selectedDayPredicate: (day) {
-                return isSameDay(_selectedDay, day);
-              },
-              onDaySelected: (selectedDay, focusedDay) {
-                if (!isSameDay(_selectedDay, selectedDay)) {
-                  setState(() {
-                    _selectedDay = selectedDay;
-                    _focusedDay = focusedDay;
-                  });
-                }
-              },
-              onFormatChanged: (format) {
-                if (_calendarFormat != format) {
-                  setState(() {
-                    _calendarFormat = format;
-                  });
-                }
-              },
-              onPageChanged: (focusedDay) {
-                _focusedDay = focusedDay;
-              },
-              // Diseño y colores para que combine con Mon TI Labs
-              calendarStyle: CalendarStyle(
-                todayDecoration: BoxDecoration(
-                  color: Colors.teal.shade200,
-                  shape: BoxShape.circle,
-                ),
-                selectedDecoration: const BoxDecoration(
-                  color: Colors.teal,
-                  shape: BoxShape.circle,
-                ),
-                markerDecoration: const BoxDecoration(
-                  color: Colors.orange,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              headerStyle: const HeaderStyle(
-                formatButtonVisible: true, // Permite al fisio colapsar el mes a semanas
-                titleCentered: true,
-                formatButtonShowsNext: false,
-              ),
-              availableCalendarFormats: const {
-                CalendarFormat.month: 'Mes',
-                CalendarFormat.twoWeeks: '2 Sem',
-                CalendarFormat.week: 'Semana',
+            height: 90,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              // Le decimos a la lista que empiece al final (en el día de hoy)
+              controller: ScrollController(initialScrollOffset: 30 * 70.0), 
+              itemCount: _pastDays.length,
+              itemBuilder: (context, index) {
+                final date = _pastDays[index];
+                final isSelected = date.day == _selectedDate.day && date.month == _selectedDate.month && date.year == _selectedDate.year;
+
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedDate = date),
+                  child: Container(
+                    width: 65,
+                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.teal : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: isSelected ? Colors.teal : Colors.grey.shade300),
+                      boxShadow: isSelected 
+                        ? [BoxShadow(color: Colors.teal.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))] 
+                        : [],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          // Extraemos el día de la semana abreviado (ej. "Lun")
+                          DateFormat('E', 'es').format(date).toUpperCase(),
+                          style: TextStyle(color: isSelected ? Colors.teal.shade100 : Colors.grey, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          date.day.toString(),
+                          style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: FontWeight.bold, fontSize: 20),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               },
             ),
           ),
           
-          // Línea divisoria para separar el calendario del historial
-          Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
-
-          // LA LÍNEA DE TIEMPO UNIFICADA (Intacta)
+          // 2. LA MAGIA: ANIDAMOS LOS DOS STREAMS
           Expanded(
             child: Container(
-              color: Colors.grey.shade50,
+              color: Colors.grey.shade50, // Fondo un poco más gris para dar contraste
               child: StreamBuilder<QuerySnapshot>(
                 stream: workoutStream,
                 builder: (context, workoutSnapshot) {
@@ -139,8 +130,23 @@ class _PhysioCalendarScreenState extends State<PhysioCalendarScreen> {
                         return const Center(child: CircularProgressIndicator(color: Colors.teal));
                       }
 
+                      if (workoutSnapshot.hasError || dailySnapshot.hasError) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: Text(
+                              'Requiere Índice de Firebase para daily_logs.\nAbre tu consola y haz clic en el enlace azul en los logs.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        );
+                      }
+
+                      // 3. JUNTAMOS AMBAS LISTAS Y LAS ORDENAMOS POR HORA DESCENDENTE
                       final workoutDocs = workoutSnapshot.data?.docs ?? [];
                       final dailyDocs = dailySnapshot.data?.docs ?? [];
+                      
                       final allLogs = [...workoutDocs, ...dailyDocs];
 
 // ESTADO VACÍO: Si ese día nadie hizo nada
@@ -151,7 +157,7 @@ class _PhysioCalendarScreenState extends State<PhysioCalendarScreen> {
                             children: [
                               Icon(Icons.event_busy, size: 80, color: Colors.teal.shade100),
                               const SizedBox(height: 16),
-                              Text('Día libre. No hay registros.', style: const TextStyle(color: Colors.grey, fontSize: 16)),
+                              Text('No hay actividad el ${_selectedDate.day}/${_selectedDate.month}', style: const TextStyle(color: Colors.grey, fontSize: 16)),
                             ],
                           ),
                         );
