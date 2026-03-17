@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:kinesia_app/features/notifications/notification_bell.dart';
-import 'patient_routine_screen.dart'; // La pantalla de los videos de YouTube
+import 'patient_routine_screen.dart';
+import 'patient_daily_log_screen.dart';
 
 class PatientHomeScreen extends StatelessWidget {
   const PatientHomeScreen({super.key});
@@ -160,10 +161,13 @@ class PatientHomeScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         
                         // El botón de la bitácora se queda al final de la lista
+                        // El botón de la bitácora
                         OutlinedButton.icon(
                           onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Próximamente: Bitácora diaria del fisio')),
+                            // ¡LA NAVEGACIÓN REAL!
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const PatientDailyLogScreen()),
                             );
                           },
                           icon: const Icon(Icons.edit_note),

@@ -7,6 +7,7 @@ import 'clinical_evaluation_screen.dart';
 import 'clinical_history_list_screen.dart';
 import 'package:shimmer/shimmer.dart';
 import 'select_template_screen.dart';
+import 'patient_logs_history_screen.dart';
 
 class PatientProfileScreen extends StatelessWidget {
   final String patientId;
@@ -160,6 +161,34 @@ class PatientProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
+
+            // BOTÓN PARA VER REPORTES DE BIENESTAR
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PatientLogsHistoryScreen(
+                          patientId: patientId, // O solo patientId si es StatelessWidget
+                          patientName: patientName,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.favorite_border),
+                  label: const Text('Ver Reportes de Bienestar'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.teal,
+                    side: const BorderSide(color: Colors.teal),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ),
 
             const Text(
               'Rutinas Asignadas',
