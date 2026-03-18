@@ -6,7 +6,6 @@ import '../patients/patient_profile_screen.dart';
 import 'package:kinesia_app/features/notifications/notification_bell.dart';
 import 'package:shimmer/shimmer.dart';
 
-// 1. CAMBIO CLAVE: Ahora es un StatefulWidget para poder usar la barra de búsqueda
 class DashboardPhysioScreen extends StatefulWidget {
   const DashboardPhysioScreen({super.key});
 
@@ -15,21 +14,16 @@ class DashboardPhysioScreen extends StatefulWidget {
 }
 
 class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
-  // 2. VARIABLES DE BÚSQUEDA
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  String _selectedFilter = 'Todos'; 
 
-  // NUEVO: Variable para el filtro actual
-  String _selectedFilter = 'Todos'; // Opciones: 'Todos', 'Clínica', 'Fitness'
-
-  // NUEVO: Variables para guardar la conexión a Firebase
   late Stream<DocumentSnapshot> _physioStream;
   late Stream<QuerySnapshot> _patientsStream;
 
   @override
   void initState() {
     super.initState();
-    // Preparamos las conexiones UNA SOLA VEZ
     final currentUserId = FirebaseAuth.instance.currentUser!.uid;
 
     _physioStream = FirebaseFirestore.instance
@@ -53,464 +47,368 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
   @override
   Widget build(BuildContext context) {
     final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+    // Colores SaaS Premium
+    const Color darkSlate = Color(0xFF0F172A);
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade50, // Fondo ultra limpio para la lista
       appBar: AppBar(
-        title: const Text(
-          'Kines.ia',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Centro de Mando', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
+        backgroundColor: darkSlate,
+        foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           NotificationBell(userId: currentUserId),
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.white70),
             tooltip: 'Cerrar Sesión',
             onPressed: () => FirebaseAuth.instance.signOut(),
           ),
         ],
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream:
-            _physioStream, // ¡Mucho más limpio! //FirebaseFirestore.instance.collection('physiotherapists').doc(currentUserId).snapshots(),
+        stream: _physioStream, 
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: Colors.teal));
           }
 
-          if (snapshot.hasError ||
-              !snapshot.hasData ||
-              !snapshot.data!.exists) {
-            return const Center(
-              child: Text('Error al cargar la información del perfil.'),
-            );
+          if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
+            return const Center(child: Text('Error al cargar la información del perfil.'));
           }
 
           final physioData = snapshot.data!.data() as Map<String, dynamic>;
-          final String physioName = physioData['displayName'] ?? 'Fisio';
+          final String physioName = physioData['displayName'] ?? 'Especialista';
+          // Tomamos solo el primer nombre para el saludo
+          final String shortName = physioName.split(' ')[0];
           final String plan = physioData['plan'] ?? 'free';
           final int patientCount = physioData['patientCount'] ?? 0;
           final int maxPatients = 15;
 
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Hola, $physioName 👋',
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+          return Column(
+            children: [
+              // 1. EL HEADER OSCURO TIPO SaaS (Stripe/Vercel)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                decoration: const BoxDecoration(
+                  color: darkSlate,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(32),
+                    bottomRight: Radius.circular(32),
                   ),
                 ),
-                const SizedBox(height: 8),
-
-                Card(
-                  elevation: 2,
-                  color: plan == 'pro' ? Colors.teal.shade50 : Colors.white,
-                  child: ListTile(
-                    leading: Icon(
-                      plan == 'pro' ? Icons.star : Icons.account_circle,
-                      color: plan == 'pro' ? Colors.amber : Colors.teal,
-                      size: 40,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hola, $shortName 👋',
+                      style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1),
                     ),
-                    title: Text(
-                      plan == 'pro' ? 'Plan Pro Activo' : 'Plan Gratuito',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      plan == 'pro'
-                          ? 'Pacientes ilimitados y funciones IA'
-                          : '$patientCount / $maxPatients pacientes (Mejora a Pro para ilimitados)',
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                const Text(
-                  'Tus Pacientes',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const Divider(),
-
-                // 3. LA BARRA DE BÚSQUEDA
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      setState(() => _searchQuery = value.toLowerCase());
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Buscar paciente...',
-                      prefixIcon: const Icon(Icons.search, color: Colors.teal),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.grey),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _searchQuery = '');
-                              },
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ),
-
-                // NUEVO: LOS FILTROS RÁPIDOS (Chips)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Row(
-                    children: ['Todos', 'Clínica', 'Fitness'].map((
-                      String filter,
-                    ) {
-                      final isSelected = _selectedFilter == filter;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: ChoiceChip(
-                          label: Text(filter),
-                          selected: isSelected,
-                          selectedColor: Colors.teal,
-                          labelStyle: TextStyle(
-                            color: isSelected
-                                ? Colors.white
-                                : Colors.grey.shade800,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                          backgroundColor: Colors.grey.shade200,
-                          onSelected: (bool selected) {
-                            setState(() {
-                              _selectedFilter = filter;
-                            });
-                          },
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream:
-                        _patientsStream, // ¡Aquí también! FirebaseFirestore.instance //ya se coloco al inicio el resto del codigo
-                    builder: (context, patientSnapshot) {
-                      if (patientSnapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        // Mostramos 4 tarjetas fantasma animadas mientras carga
-                        return ListView.builder(
-                          itemCount: 4,
-                          itemBuilder: (context, index) =>
-                              const PatientCardShimmer(),
-                        );
-                      }
-
-                      if (patientSnapshot.hasError) {
-                        return const Center(
-                          child: Text(
-                            'Error al cargar la lista de pacientes.',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        );
-                      }
-
-                      final patientDocs = patientSnapshot.data?.docs ?? [];
-
-                      // 4. EL FILTRO LOCAL MÁGICO
-                      // EL FILTRO LOCAL MÁGICO (Búsqueda + Categoría)
-                      final filteredDocs = patientDocs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        final name = (data['fullName'] ?? '')
-                            .toString()
-                            .toLowerCase();
-
-                        // Si el paciente no tiene tipo asignado aún, asumimos que es de Clínica
-                        final String patientType =
-                            data['patientType'] ?? 'Clínica';
-
-                        // 1. ¿Coincide con la búsqueda de texto?
-                        final matchesSearch = name.contains(_searchQuery);
-
-                        // 2. ¿Coincide con el chip seleccionado?
-                        final matchesFilter =
-                            _selectedFilter == 'Todos' ||
-                            patientType == _selectedFilter;
-
-                        return matchesSearch && matchesFilter;
-                      }).toList();
-
-                      //quitar cuando funcione lo demas.
-                      /**   final filteredDocs = patientDocs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        final name = (data['fullName'] ?? '').toString().toLowerCase();
-                        return name.contains(_searchQuery);
-                      }).toList();**/
-
-                      // Estado 1: Absolutamente 0 pacientes en la base de datos (Tu Empty State)
-                      if (patientDocs.isEmpty) {
-                        return Center(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(32.0),
+                    const SizedBox(height: 24),
+                    
+                    // TARJETAS DE KPIs (Métricas Clave)
+                    Row(
+                      children: [
+                        // KPI 1: Pacientes Activos
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                            ),
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    color: Colors.teal.shade50,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.group_add_outlined,
-                                    size: 80,
-                                    color: Colors.teal.shade300,
-                                  ),
-                                ),
-                                const SizedBox(height: 32),
-                                const Text(
-                                  'Tu consultorio está listo',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.teal,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  'Aún no tienes pacientes activos en tu lista. Toca el botón en la esquina inferior derecha para registrar a tu primer paciente y comenzar a estructurar expedientes con Inteligencia Artificial.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey,
-                                    height: 1.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 40),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(right: 32.0),
-                                    child: Transform.rotate(
-                                      angle: -0.5,
-                                      child: Icon(
-                                        Icons.arrow_downward_rounded,
-                                        size: 48,
-                                        color: Colors.teal.shade200,
-                                      ),
-                                    ),
-                                  ),
+                                const Text('Pacientes Activos', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                                const SizedBox(height: 8),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                                  textBaseline: TextBaseline.alphabetic,
+                                  children: [
+                                    Text('$patientCount', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+                                    Text(plan == 'pro' ? '' : ' / $maxPatients', style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
-                        );
-                      }
-
-                      // Estado 2: Hay pacientes, pero la búsqueda no arrojó resultados
-                      if (filteredDocs.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.search_off,
-                                size: 64,
-                                color: Colors.grey.shade300,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No se encontró a "$_searchQuery"',
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-
-                      // Estado 3: Mostrar la lista filtrada
-                      return ListView.builder(
-                        itemCount:
-                            filteredDocs.length, // Usamos la lista filtrada
-                        itemBuilder: (context, index) {
-                          final patientData = filteredDocs[index].data() as Map<String, dynamic>;
-                          final String patientId = filteredDocs[index].id;
-                          final String name = patientData['fullName'] ?? 'Sin nombre';
-                          //final String status = patientData['status'] ?? 'active';
-                          final String patientType = patientData['patientType'] ?? 'Clínica';
-
-                          return Card(
-                            elevation: 1,
-                            margin: const EdgeInsets.symmetric(vertical: 6),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        ),
+                        const SizedBox(width: 16),
+                        // KPI 2: Estado del Plan
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: plan == 'pro' ? Colors.amber.withValues(alpha: 0.2) : Colors.teal.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: plan == 'pro' ? Colors.amber.withValues(alpha: 0.5) : Colors.teal.withValues(alpha: 0.5)),
                             ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Licencia Actual', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(plan == 'pro' ? Icons.star : Icons.verified, color: plan == 'pro' ? Colors.amber : Colors.tealAccent, size: 24),
+                                    const SizedBox(width: 8),
+                                    Text(plan == 'pro' ? 'PRO' : 'GRATUITA', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // 2. ÁREA DE BÚSQUEDA Y LISTA (Fondo Claro)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 24),
+                      
+                      // BARRA DE BÚSQUEDA MODERNA
+                      TextField(
+                        controller: _searchController,
+                        onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+                        decoration: InputDecoration(
+                          hintText: 'Buscar paciente por nombre...',
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(icon: const Icon(Icons.clear, color: Colors.grey), onPressed: () { _searchController.clear(); setState(() => _searchQuery = ''); })
+                              : null,
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          // Sombra sutil
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // CHIPS DE FILTRO ELEGANTES
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: ['Todos', 'Clínica', 'Fitness'].map((String filter) {
+                            final isSelected = _selectedFilter == filter;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: ChoiceChip(
+                                label: Text(filter),
+                                selected: isSelected,
+                                selectedColor: darkSlate,
+                                showCheckmark: false,
+                                labelStyle: TextStyle(
+                                  color: isSelected ? Colors.white : Colors.grey.shade700,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                ),
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  side: BorderSide(color: isSelected ? darkSlate : Colors.grey.shade300),
+                                ),
+                                onSelected: (bool selected) => setState(() => _selectedFilter = filter),
                               ),
-                              leading: CircleAvatar(
-                                backgroundColor: Colors.teal.shade100,
-                                radius: 24,
-                                child: Text(
-                                  name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                  style: const TextStyle(
-                                    color: Colors.teal,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // LA LISTA DE PACIENTES
+                      Expanded(
+                        child: StreamBuilder<QuerySnapshot>(
+                          stream: _patientsStream, 
+                          builder: (context, patientSnapshot) {
+                            if (patientSnapshot.connectionState == ConnectionState.waiting) {
+                              return ListView.builder(itemCount: 4, itemBuilder: (context, index) => const PatientCardShimmer());
+                            }
+
+                            if (patientSnapshot.hasError) {
+                              return const Center(child: Text('Error al cargar la lista de pacientes.', style: TextStyle(color: Colors.red)));
+                            }
+
+                            final patientDocs = patientSnapshot.data?.docs ?? [];
+
+                            final filteredDocs = patientDocs.where((doc) {
+                              final data = doc.data() as Map<String, dynamic>;
+                              final name = (data['fullName'] ?? '').toString().toLowerCase();
+                              final String patientType = data['patientType'] ?? 'Clínica';
+                              final matchesSearch = name.contains(_searchQuery);
+                              final matchesFilter = _selectedFilter == 'Todos' || patientType == _selectedFilter;
+                              return matchesSearch && matchesFilter;
+                            }).toList();
+
+                            // EMPTY STATE 1: Cero pacientes en BD
+                            if (patientDocs.isEmpty) {
+                              return Center(
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(32),
+                                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)]),
+                                        child: const Icon(Icons.people_alt_outlined, size: 64, color: Colors.teal),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      const Text('Tu panel está listo', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: darkSlate)),
+                                      const SizedBox(height: 12),
+                                      const Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 32.0),
+                                        child: Text(
+                                          'Agrega a tu primer paciente para comenzar a crear planes de rehabilitación de alto impacto.',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                              title: Text(
-                                name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                              );
+                            }
+
+                            // EMPTY STATE 2: Búsqueda sin resultados
+                            if (filteredDocs.isEmpty) {
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
+                                    const SizedBox(height: 16),
+                                    Text('No encontramos a "$_searchQuery"', style: const TextStyle(color: Colors.grey, fontSize: 16)),
+                                  ],
                                 ),
-                              ),
-                              subtitle: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                    size: 14,
+                              );
+                            }
+
+                            // LISTA DE PACIENTES PREMIUM
+                            return ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 80), // Espacio para el FAB
+                              itemCount: filteredDocs.length, 
+                              itemBuilder: (context, index) {
+                                final patientData = filteredDocs[index].data() as Map<String, dynamic>;
+                                final String patientId = filteredDocs[index].id;
+                                final String name = patientData['fullName'] ?? 'Sin nombre';
+                                final String patientType = patientData['patientType'] ?? 'Clínica';
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: Colors.grey.shade100),
+                                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
                                   ),
-                                  const SizedBox(width: 4),
-                                  const Text(
-                                    'Activo',
-                                    style: TextStyle(
-                                      color: Colors.green,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // NUEVA ETIQUETA VISUAL
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: patientType == 'Fitness'
-                                          ? Colors.orange.shade50
-                                          : Colors.teal.shade50,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: patientType == 'Fitness'
-                                            ? Colors.orange.shade200
-                                            : Colors.teal.shade200,
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                    leading: CircleAvatar(
+                                      backgroundColor: darkSlate,
+                                      radius: 24,
+                                      child: Text(
+                                        name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
                                       ),
                                     ),
-                                    child: Text(
-                                      patientType,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: patientType == 'Fitness'
-                                            ? Colors.orange.shade700
-                                            : Colors.teal.shade700,
+                                    title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: darkSlate, letterSpacing: -0.5)),
+                                    subtitle: Padding(
+                                      padding: const EdgeInsets.only(top: 6.0),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: patientType == 'Fitness' ? Colors.orange.shade50 : Colors.teal.shade50,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              patientType.toUpperCase(),
+                                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5, color: patientType == 'Fitness' ? Colors.orange.shade700 : Colors.teal.shade700),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          const Icon(Icons.circle, color: Colors.green, size: 10),
+                                          const SizedBox(width: 4),
+                                          const Text('Activo', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              trailing: const Icon(
-                                Icons.chevron_right,
-                                color: Colors.grey,
-                              ),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => PatientProfileScreen(
-                                      patientId: patientId,
-                                      patientName: name,
+                                    trailing: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: Colors.grey.shade50, shape: BoxShape.circle),
+                                      child: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
                                     ),
+                                    onTap: () {
+                                      Navigator.push(context, MaterialPageRoute(builder: (context) => PatientProfileScreen(patientId: patientId, patientName: name)));
+                                    },
                                   ),
                                 );
                               },
-                            ),
-                          );
-                        },
-                      );
-                    },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
+      // BOTÓN FLOTANTE EXTENDIDO PREMIUM
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const CreatePatientScreen(),
-            ),
-          );
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const CreatePatientScreen()));
         },
-        backgroundColor: Colors.teal,
+        backgroundColor: darkSlate,
         foregroundColor: Colors.white,
-        child: const Icon(Icons.person_add),
+        elevation: 4,
+        icon: const Icon(Icons.add),
+        label: const Text('Nuevo Paciente', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
       ),
     );
   }
 }
 
-// NUEVO: El molde animado para los Shimmers
 class PatientCardShimmer extends StatelessWidget {
   const PatientCardShimmer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         leading: Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
+          baseColor: Colors.grey.shade200,
+          highlightColor: Colors.grey.shade50,
           child: const CircleAvatar(radius: 24, backgroundColor: Colors.white),
         ),
         title: Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
-          child: Container(
-            height: 16,
-            width: double.infinity,
-            color: Colors.white,
-          ),
+          baseColor: Colors.grey.shade200,
+          highlightColor: Colors.grey.shade50,
+          child: Container(height: 16, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
         ),
         subtitle: Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
-          child: Container(
-            height: 12,
-            width: 100,
-            color: Colors.white,
-            margin: const EdgeInsets.only(
-              top: 8,
-              right: 100,
-            ), // Margen para que se vea más corto que el título
-          ),
+          baseColor: Colors.grey.shade200,
+          highlightColor: Colors.grey.shade50,
+          child: Container(height: 12, width: 100, margin: const EdgeInsets.only(top: 8, right: 100), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
         ),
       ),
     );

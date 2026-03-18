@@ -24,13 +24,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
     });
 
     try {
-      // 1. Crear el usuario en Firebase Authentication
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      // 2. Crear su perfil en Firestore Database usando el mismo UID
       if (userCredential.user != null) {
         await FirebaseFirestore.instance
             .collection('physiotherapists')
@@ -38,14 +36,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
             .set({
           'displayName': _nameController.text.trim(),
           'email': _emailController.text.trim(),
-          'plan': 'free', // Todos inician en el plan gratuito
+          'plan': 'free', 
           'patientCount': 0,
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
       
-      // Si todo sale bien, el AuthGate detectará la nueva sesión y nos mandará al Dashboard.
-      if (mounted) Navigator.pop(context); // Cierra la pantalla de registro
+      if (mounted) Navigator.pop(context); 
       
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -75,61 +72,91 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true, // Esto hace que la foto suba hasta arriba
       appBar: AppBar(
-        title: const Text('Crear Cuenta'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.transparent, // Barra transparente
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white), // Flecha blanca de regreso
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Únete a Kines.ia',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.teal),
+      body: Stack(
+        children: [
+          // FONDO INMERSIVO
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                // Otra fotografía premium complementaria
+                image: const NetworkImage('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070&auto=format&fit=crop'),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.75), BlendMode.darken),
               ),
-              const SizedBox(height: 32),
+            ),
+          ),
 
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nombre Completo', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person)),
-              ),
-              const SizedBox(height: 16),
+          // FORMULARIO FLOTANTE
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Únete al equipo',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Crea tu cuenta de especialista',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.white70),
+                    ),
+                    const SizedBox(height: 40),
 
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Correo Electrónico', border: OutlineInputBorder(), prefixIcon: Icon(Icons.email)),
-              ),
-              const SizedBox(height: 16),
+                    TextField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(labelText: 'Nombre Completo', prefixIcon: Icon(Icons.person_outline)),
+                    ),
+                    const SizedBox(height: 16),
 
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Contraseña', border: OutlineInputBorder(), prefixIcon: Icon(Icons.lock)),
-              ),
-              const SizedBox(height: 16),
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(labelText: 'Correo Electrónico', prefixIcon: Icon(Icons.email_outlined)),
+                    ),
+                    const SizedBox(height: 16),
 
-              if (_errorMessage != null)
-                Text(_errorMessage!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
-              const SizedBox(height: 16),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'Contraseña', prefixIcon: Icon(Icons.lock_outline)),
+                    ),
+                    const SizedBox(height: 24),
 
-              SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _signUp,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Registrarse', style: TextStyle(fontSize: 18)),
+                    if (_errorMessage != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: Colors.red.withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
+                        child: Text(_errorMessage!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                      ),
+                    if (_errorMessage != null) const SizedBox(height: 16),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _signUp,
+                        style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 18)),
+                        child: _isLoading
+                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : const Text('Comenzar gratis', style: TextStyle(fontSize: 18)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

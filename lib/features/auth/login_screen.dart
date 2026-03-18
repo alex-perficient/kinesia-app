@@ -10,14 +10,12 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Controladores para leer lo que el usuario escribe
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   
-  bool _isLoading = false; // Para mostrar un circulito de carga
-  String? _errorMessage;   // Para mostrar errores (ej. contraseña incorrecta)
+  bool _isLoading = false; 
+  String? _errorMessage;   
 
-  // Función asíncrona que habla con Firebase
   Future<void> _signIn() async {
     setState(() {
       _isLoading = true;
@@ -29,12 +27,9 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      // Si el login es exitoso, el AuthGate detectará el cambio automáticamente 
-      // y nos sacará de esta pantalla.
     } on FirebaseAuthException catch (e) {
-      if (mounted) { // <-- ¡NUEVO: Verificamos que la pantalla siga viva!
+      if (mounted) { 
         setState(() {
-          // Manejo básico de errores para darle feedback al usuario
           if (e.code == 'user-not-found') {
             _errorMessage = 'No hay un usuario con este correo.';
           } else if (e.code == 'wrong-password') {
@@ -45,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     } finally {
-      if (mounted) { // <-- ¡LA SOLUCIÓN AL ERROR ROJO!
+      if (mounted) { 
         setState(() {
           _isLoading = false;
         });
@@ -63,90 +58,121 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo o Título de Kines.ia
-              const Text(
-                'KinesIA',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.teal),
+      // Usamos Stack para apilar el fondo oscuro y el formulario encima
+      body: Stack(
+        children: [
+          // 1. EL FONDO INMERSIVO
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                // Fotografía premium de un centro de entrenamiento/clínica
+                image: const NetworkImage('https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?q=80&w=2000&auto=format&fit=crop'),
+                fit: BoxFit.cover,
+                // Filtro oscuro muy elegante para que resalte el blanco
+                colorFilter: ColorFilter.mode(Colors.black.withValues(alpha:0.75), BlendMode.darken),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Portal para Fisioterapeutas y Pacientes',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 48),
-
-              // Campo de Correo
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Correo Electrónico',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Campo de Contraseña
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Mostrar error si existe
-              if (_errorMessage != null)
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
-                ),
-              const SizedBox(height: 16),
-
-              // Botón de Entrar
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _signIn,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Ingresar', style: TextStyle(fontSize: 18)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              // Botón para ir a Registro
-              TextButton(
-                onPressed: () {
-                  // Navegamos a la pantalla de registro
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const SignUpScreen()), // Asegúrate de importar sign_up_screen.dart arriba
-                  );
-                },
-                child: const Text('¿No tienes cuenta? Regístrate aquí', style: TextStyle(color: Colors.teal)),
-              ),
-            ],
+            ),
           ),
-        ),
+          
+          // 2. EL CONTENIDO FLOTANTE
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // LOGOTIPO (Texto blanco para contrastar)
+                    const Text(
+                      'Kines.ia',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 48, 
+                        fontWeight: FontWeight.w900, 
+                        color: Colors.white,
+                        letterSpacing: -1.5, // Tipografía más unida y deportiva
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Alto Rendimiento y Rehabilitación',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.white70, letterSpacing: 0.5),
+                    ),
+                    const SizedBox(height: 56),
+
+                    // FORMULARIO (Se verán como burbujas gracias al ThemeData)
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'Correo Electrónico',
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Contraseña',
+                        prefixIcon: Icon(Icons.lock_outline),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // ERROR MESSAGE (Con fondo para que se lea sobre la foto)
+                    if (_errorMessage != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    if (_errorMessage != null) const SizedBox(height: 16),
+
+                    // BOTÓN DE INGRESAR (Ajustado al ancho total, sin height fijo)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _signIn,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : const Text('Ingresar a mi cuenta', style: TextStyle(fontSize: 18)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // BOTÓN DE REGISTRO
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                        );
+                      },
+                      child: const Text(
+                        '¿Eres nuevo? Regístrate aquí', 
+                        style: TextStyle(color: Colors.tealAccent, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
