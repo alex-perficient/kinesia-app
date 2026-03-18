@@ -4,19 +4,21 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'create_template_screen.dart';
 import 'template_detail_screen.dart';
 
-
 class RoutineLibraryScreen extends StatelessWidget {
   const RoutineLibraryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+    const Color darkSlate = Color(0xFF0F172A); // Nuestro color corporativo premium
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade50, // Fondo limpio
       appBar: AppBar(
-        title: const Text('Biblioteca de Rutinas', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.teal,
+        // ¡NUEVO: Le agregamos color: Colors.white al TextStyle!
+        title: const Text('Biblioteca de Rutinas', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
+        backgroundColor: darkSlate,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -31,14 +33,11 @@ class RoutineLibraryScreen extends StatelessWidget {
           }
 
           if (snapshot.hasError) {
-            // Como acabamos de crear una consulta con "where" y "orderBy", 
-            // Firebase nos va a pedir crear un índice la primera vez.
-            debugPrint(snapshot.error.toString());
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  'Error al cargar. Si es la primera vez, revisa la consola para crear el índice en Firebase.',
+                  'Error al cargar. Revisa la consola para crear el índice en Firebase.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.red.shade300),
                 ),
@@ -48,16 +47,14 @@ class RoutineLibraryScreen extends StatelessWidget {
 
           final templates = snapshot.data?.docs ?? [];
 
-          // ESTADO VACÍO: Look "Nike Training" con fotografía inyectada
+          // ESTADO VACÍO: Look "Nike Training" (Intacto)
           if (templates.isEmpty) {
             return Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                // Inyectamos una foto profesional de Unsplash directo de la nube
                 image: DecorationImage(
                   image: const NetworkImage('https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?q=80&w=2070&auto=format&fit=crop'), 
                   fit: BoxFit.cover,
-                  // El truco mágico: Un cristal oscuro sobre la foto para que el texto sea legible
                   colorFilter: ColorFilter.mode(Colors.black.withValues(alpha:0.65), BlendMode.darken), 
                 ),
               ),
@@ -79,7 +76,6 @@ class RoutineLibraryScreen extends StatelessWidget {
                       style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
                     ),
                     const SizedBox(height: 40),
-                    // Un botón blanco sólido que resalta sobre el fondo oscuro
                     ElevatedButton.icon(
                       onPressed: () {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateTemplateScreen()));
@@ -98,9 +94,9 @@ class RoutineLibraryScreen extends StatelessWidget {
             );
           }
 
-          // LISTA DE PLANTILLAS
+          // LISTA DE PLANTILLAS PREMIUM
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             itemCount: templates.length,
             itemBuilder: (context, index) {
               final data = templates[index].data() as Map<String, dynamic>;
@@ -108,44 +104,63 @@ class RoutineLibraryScreen extends StatelessWidget {
               final String description = data['description'] ?? '';
               final List exercises = data['exercises'] ?? [];
 
-              return Card(
-                elevation: 2,
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.shade100),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.teal.shade50,
-                    child: const Icon(Icons.fitness_center, color: Colors.teal),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  leading: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: Colors.teal.shade50, shape: BoxShape.circle),
+                    child: const Icon(Icons.library_books, color: Colors.teal),
                   ),
-                  title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: darkSlate, letterSpacing: -0.5)),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 4),
-                      if (description.isNotEmpty) Text(description, maxLines: 2, overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${exercises.length} ejercicios',
-                        style: TextStyle(color: Colors.teal.shade700, fontWeight: FontWeight.w500),
+                      const SizedBox(height: 6),
+                      if (description.isNotEmpty) Text(description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.grey)),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(color: darkSlate.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.fitness_center, size: 14, color: darkSlate),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${exercises.length} Ejercicios',
+                              style: const TextStyle(color: darkSlate, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-               onTap: () {
-                 // AHORA SÍ NAVEGAMOS AL DETALLE
-                 Navigator.push(
-                   context,
-                   MaterialPageRoute(
-                     builder: (context) => TemplateDetailScreen(
-                       templateId: templates[index].id, // El ID de Firebase
-                       title: title,
-                       description: description,
-                       exercises: exercises,
-                     ),
-                   ),
-                 );
-               },
+                  trailing: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.grey.shade50, shape: BoxShape.circle),
+                    child: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TemplateDetailScreen(
+                          templateId: templates[index].id,
+                          title: title,
+                          description: description,
+                          exercises: exercises,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               );
             },
@@ -154,16 +169,16 @@ class RoutineLibraryScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // AHORA SÍ NAVEGAMOS AL FORMULARIO:
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const CreateTemplateScreen()),
           );
         },
-        backgroundColor: Colors.teal,
+        backgroundColor: darkSlate,
         foregroundColor: Colors.white,
+        elevation: 4,
         icon: const Icon(Icons.add),
-        label: const Text('Nueva Plantilla'),
+        label: const Text('Nueva Plantilla', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
       ),
     );
   }

@@ -87,7 +87,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 // Otra fotografía premium complementaria
                 image: const NetworkImage('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070&auto=format&fit=crop'),
                 fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.75), BlendMode.darken),
+                colorFilter: ColorFilter.mode(Colors.black.withValues(alpha:0.75), BlendMode.darken),
               ),
             ),
           ),
@@ -136,7 +136,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     if (_errorMessage != null)
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: Colors.red.withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
+                        decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(12)),
                         child: Text(_errorMessage!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                       ),
                     if (_errorMessage != null) const SizedBox(height: 16),

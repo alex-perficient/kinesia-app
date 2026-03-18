@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart'; // Importante para la segunda instancia
+import 'package:firebase_core/firebase_core.dart'; 
 
 class CreatePatientScreen extends StatefulWidget {
   const CreatePatientScreen({super.key});
@@ -14,12 +14,10 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  // NUEVO: Variable para el tipo de paciente
   String _selectedPatientType = 'Clínica'; 
   final List<String> _patientTypes = ['Clínica', 'Fitness'];
   
   bool _isLoading = false;
-  
 
   Future<void> _savePatient() async {
     if (_nameController.text.trim().isEmpty || 
@@ -37,7 +35,6 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
       final String physioId = FirebaseAuth.instance.currentUser!.uid;
       final physioRef = FirebaseFirestore.instance.collection('physiotherapists').doc(physioId);
 
-      // 1. Validar límite de plan gratuito
       final physioDoc = await physioRef.get();
       final physioData = physioDoc.data() as Map<String, dynamic>;
       final String plan = physioData['plan'] ?? 'free';
@@ -53,14 +50,11 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
         return;
       }
 
-      // 2. EL TRUCO ARQUITECTÓNICO: Crear una segunda app de Firebase temporal
-      // Esto evita que Firebase cierre la sesión del Fisioterapeuta actual.
       FirebaseApp tempApp = await Firebase.initializeApp(
         name: 'TemporaryPatientCreation',
         options: Firebase.app().options,
       );
 
-      // 3. Crear el usuario en Authentication usando la app temporal
       UserCredential userCredential = await FirebaseAuth.instanceFor(app: tempApp)
           .createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
@@ -68,23 +62,17 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
       );
 
       final String newPatientId = userCredential.user!.uid;
-
-      // 4. Destruir la app temporal inmediatamente por seguridad
       await tempApp.delete();
 
-      // 5. Guardar el documento del paciente en Firestore con el nuevo ID real
       await FirebaseFirestore.instance.collection('patients').doc(newPatientId).set({
         'physioId': physioId,
         'fullName': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'status': 'active',
-       // 'profileType': _selectedProfile, // ¡AQUÍ ESTÁ LA MAGIA!
         'createdAt': FieldValue.serverTimestamp(),
-        // ¡NUEVA LÍNEA CLAVE!
         'patientType': _selectedPatientType,
       });
 
-      // 6. Actualizar el contador del fisio
       await physioRef.update({'patientCount': FieldValue.increment(1)});
 
       if (mounted) {
@@ -110,106 +98,123 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
     super.dispose();
   }
 
+  // Helper para Inputs Premium
+  InputDecoration _premiumInput(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.grey.shade600),
+      prefixIcon: Icon(icon, color: Colors.teal),
+      filled: true,
+      fillColor: Colors.grey.shade50,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.teal, width: 2)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    const Color darkSlate = Color(0xFF0F172A);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Nuevo Paciente')),
+      backgroundColor: Colors.grey.shade100, // Fondo gris para resaltar el formulario blanco
+      appBar: AppBar(
+        title: const Text('Nuevo Paciente', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
+        backgroundColor: darkSlate,
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white), // Flecha blanca asegurada
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Crea las credenciales de acceso para tu paciente.',
-              style: TextStyle(color: Colors.grey, fontSize: 16),
-            ),
-            const SizedBox(height: 24),
+            const Text('Genera el acceso', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: darkSlate, letterSpacing: -0.5)),
+            const SizedBox(height: 8),
+            const Text('Crea las credenciales seguras para que tu paciente pueda usar la app.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+            const SizedBox(height: 32),
             
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Nombre Completo', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person)),
-              textCapitalization: TextCapitalization.words,
-            ),
-            const SizedBox(height: 16),
-            
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Correo del Paciente', border: OutlineInputBorder(), prefixIcon: Icon(Icons.email)),
-            ),
-            const SizedBox(height: 16),
+            // CONTENEDOR BLANCO DEL FORMULARIO
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.02), blurRadius: 15, offset: const Offset(0, 5))]),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _nameController,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: _premiumInput('Nombre Completo', Icons.person_outline),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: _premiumInput('Correo del Paciente', Icons.email_outlined),
+                  ),
+                  const SizedBox(height: 16),
 
-            // NUEVO: Selector de Tipo de Paciente
-              DropdownButtonFormField<String>(
-                initialValue: _selectedPatientType,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de Enfoque / Paciente',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.category_outlined),
-                ),
-                items: _patientTypes.map((String type) {
-                  return DropdownMenuItem<String>(
-                    value: type,
-                    child: Text(type),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _selectedPatientType = newValue;
-                    });
-                  }
-                },
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedPatientType,
+                    decoration: _premiumInput('Enfoque / Tipo', Icons.category_outlined),
+                    icon: const Icon(Icons.keyboard_arrow_down, color: Colors.teal),
+                    items: _patientTypes.map((String type) => DropdownMenuItem<String>(value: type, child: Text(type, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) setState(() => _selectedPatientType = newValue);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  TextField(
+                    controller: _passwordController,
+                    decoration: _premiumInput('Contraseña Temporal', Icons.lock_outline),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Contraseña Temporal (Mín. 6 letras/números)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.lock)),
             ),
             const SizedBox(height: 32),
             
-            // NUEVO: Micro-copy preventivo sobre el modelo Freemium
+            // MENSAJE DE CUOTA PREMIUM
             Container(
-              margin: const EdgeInsets.symmetric(vertical: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: darkSlate.withValues(alpha:0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: darkSlate.withValues(alpha:0.1))),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
-                  const SizedBox(width: 12),
+                  const Icon(Icons.info_outline, color: darkSlate, size: 24),
+                  const SizedBox(width: 16),
                   Expanded(
-                    child: Text(
-                      'Crear un expediente consume 1 espacio de tu cuota. Los espacios no se recuperan al archivar pacientes debido al resguardo de audios e IA. Al superar tu volumen gratuito, podrás continuar usando Kines.ia sin límites por \$100 MXN mensuales.',
-                      style: TextStyle(
-                        color: Colors.blue.shade800,
-                        fontSize: 12,
-                        height: 1.4,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Gestión de Cuota', style: TextStyle(fontWeight: FontWeight.bold, color: darkSlate)),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Crear un expediente consume 1 espacio. Los espacios no se recuperan al archivar para preservar el historial médico.',
+                          style: TextStyle(color: Colors.grey.shade700, fontSize: 13, height: 1.4),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            
-            // Aquí debajo debería estar tu botón actual de Guardar...
-            // ElevatedButton( onPressed: _savePatient ... )
-            SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _savePatient,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Generar Acceso y Guardar', style: TextStyle(fontSize: 18)),
-              ),
-            ),
           ],
+        ),
+      ),
+      // BOTÓN GIGANTE FLOTANTE
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(24),
+        color: Colors.grey.shade100,
+        child: SizedBox(
+          height: 60,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _savePatient,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 4),
+            child: _isLoading
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text('Generar Acceso', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
         ),
       ),
     );

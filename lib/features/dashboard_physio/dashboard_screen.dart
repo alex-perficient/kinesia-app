@@ -5,6 +5,8 @@ import '../patients/create_patient_screen.dart';
 import '../patients/patient_profile_screen.dart';
 import 'package:kinesia_app/features/notifications/notification_bell.dart';
 import 'package:shimmer/shimmer.dart';
+// ¡NUEVA IMPORTACIÓN! Ajusta la ruta según dónde guardaste tu paywall_screen.dart
+import 'paywall_screen.dart'; 
 
 class DashboardPhysioScreen extends StatefulWidget {
   const DashboardPhysioScreen({super.key});
@@ -47,11 +49,10 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
   @override
   Widget build(BuildContext context) {
     final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
-    // Colores SaaS Premium
     const Color darkSlate = Color(0xFF0F172A);
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50, // Fondo ultra limpio para la lista
+      backgroundColor: Colors.grey.shade50, 
       appBar: AppBar(
         title: const Text('Centro de Mando', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
         backgroundColor: darkSlate,
@@ -79,7 +80,6 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
 
           final physioData = snapshot.data!.data() as Map<String, dynamic>;
           final String physioName = physioData['displayName'] ?? 'Especialista';
-          // Tomamos solo el primer nombre para el saludo
           final String shortName = physioName.split(' ')[0];
           final String plan = physioData['plan'] ?? 'free';
           final int patientCount = physioData['patientCount'] ?? 0;
@@ -87,7 +87,7 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
 
           return Column(
             children: [
-              // 1. EL HEADER OSCURO TIPO SaaS (Stripe/Vercel)
+              // 1. EL HEADER OSCURO TIPO SaaS
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
@@ -107,7 +107,7 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                     ),
                     const SizedBox(height: 24),
                     
-                    // TARJETAS DE KPIs (Métricas Clave)
+                    // TARJETAS DE KPIs
                     Row(
                       children: [
                         // KPI 1: Pacientes Activos
@@ -137,28 +137,39 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        // KPI 2: Estado del Plan
+                        
+                        // ==========================================
+                        // KPI 2: ESTADO DEL PLAN (CONEXIÓN AL PAYWALL)
+                        // ==========================================
                         Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: plan == 'pro' ? Colors.amber.withValues(alpha: 0.2) : Colors.teal.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: plan == 'pro' ? Colors.amber.withValues(alpha: 0.5) : Colors.teal.withValues(alpha: 0.5)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Licencia Actual', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Icon(plan == 'pro' ? Icons.star : Icons.verified, color: plan == 'pro' ? Colors.amber : Colors.tealAccent, size: 24),
-                                    const SizedBox(width: 8),
-                                    Text(plan == 'pro' ? 'PRO' : 'GRATUITA', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                              ],
+                          child: GestureDetector(
+                            onTap: () {
+                              // Solo abrimos el Paywall si NO es Pro
+                              if (plan != 'pro') {
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => const PaywallScreen()));
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: plan == 'pro' ? Colors.amber.withValues(alpha: 0.2) : Colors.teal.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: plan == 'pro' ? Colors.amber.withValues(alpha: 0.5) : Colors.teal.withValues(alpha: 0.5)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Licencia Actual', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Icon(plan == 'pro' ? Icons.star : Icons.verified, color: plan == 'pro' ? Colors.amber : Colors.tealAccent, size: 24),
+                                      const SizedBox(width: 8),
+                                      Text(plan == 'pro' ? 'PRO' : 'GRATUITA', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -190,7 +201,6 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                           filled: true,
                           fillColor: Colors.white,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                          // Sombra sutil
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -249,7 +259,6 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                               return matchesSearch && matchesFilter;
                             }).toList();
 
-                            // EMPTY STATE 1: Cero pacientes en BD
                             if (patientDocs.isEmpty) {
                               return Center(
                                 child: SingleChildScrollView(
@@ -258,7 +267,7 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.all(32),
-                                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)]),
+                                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)]),
                                         child: const Icon(Icons.people_alt_outlined, size: 64, color: Colors.teal),
                                       ),
                                       const SizedBox(height: 24),
@@ -278,7 +287,6 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                               );
                             }
 
-                            // EMPTY STATE 2: Búsqueda sin resultados
                             if (filteredDocs.isEmpty) {
                               return Center(
                                 child: Column(
@@ -292,9 +300,8 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                               );
                             }
 
-                            // LISTA DE PACIENTES PREMIUM
                             return ListView.builder(
-                              padding: const EdgeInsets.only(bottom: 80), // Espacio para el FAB
+                              padding: const EdgeInsets.only(bottom: 80), 
                               itemCount: filteredDocs.length, 
                               itemBuilder: (context, index) {
                                 final patientData = filteredDocs[index].data() as Map<String, dynamic>;
@@ -366,7 +373,6 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
           );
         },
       ),
-      // BOTÓN FLOTANTE EXTENDIDO PREMIUM
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const CreatePatientScreen()));

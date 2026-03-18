@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:table_calendar/table_calendar.dart'; // NUESTRO NUEVO CALENDARIO
+import 'package:table_calendar/table_calendar.dart'; 
 import '../patients/patient_profile_screen.dart';
 
-// 1. AHORA ES UN STATEFUL WIDGET PARA MANEJAR EL DÍA SELECCIONADO
 class PhysioCalendarScreen extends StatefulWidget {
   const PhysioCalendarScreen({super.key});
 
@@ -13,7 +12,6 @@ class PhysioCalendarScreen extends StatefulWidget {
 }
 
 class _PhysioCalendarScreenState extends State<PhysioCalendarScreen> {
-  // Variables nativas de table_calendar
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay = DateTime.now();
@@ -21,13 +19,12 @@ class _PhysioCalendarScreenState extends State<PhysioCalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+    const Color darkSlate = Color(0xFF0F172A); // Color corporativo
 
-    // Calculamos el inicio y fin del día basado en el día seleccionado en el calendario
     final targetDate = _selectedDay ?? _focusedDay;
     final startOfDay = Timestamp.fromDate(DateTime(targetDate.year, targetDate.month, targetDate.day));
     final endOfDay = Timestamp.fromDate(DateTime(targetDate.year, targetDate.month, targetDate.day, 23, 59, 59));
 
-    // 1. Preparamos las dos consultas a Firebase
     final workoutStream = FirebaseFirestore.instance
         .collection('workout_logs')
         .where('physioId', isEqualTo: currentUserId)
@@ -43,14 +40,16 @@ class _PhysioCalendarScreenState extends State<PhysioCalendarScreen> {
         .snapshots();
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Agenda Global', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.teal,
+        // CABECERA DARK SLATE UNIFICADA
+        title: const Text('Agenda Global', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
+        backgroundColor: darkSlate,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.today),
+            icon: const Icon(Icons.today, color: Colors.white70),
             tooltip: 'Volver a hoy',
             onPressed: () {
               setState(() {
@@ -63,18 +62,17 @@ class _PhysioCalendarScreenState extends State<PhysioCalendarScreen> {
       ),
       body: Column(
         children: [
-          // NUESTRO NUEVO CALENDARIO MENSUAL DINÁMICO
+          // CALENDARIO
           Container(
             color: Colors.white,
+            padding: const EdgeInsets.only(bottom: 8),
             child: TableCalendar(
-              locale: 'es_ES', // Calendario en español
-              firstDay: DateTime.utc(2024, 1, 1), // Límite en el pasado
-              lastDay: DateTime.utc(2030, 12, 31), // Límite en el futuro para programar citas
+              locale: 'es_ES',
+              firstDay: DateTime.utc(2024, 1, 1),
+              lastDay: DateTime.utc(2030, 12, 31),
               focusedDay: _focusedDay,
               calendarFormat: _calendarFormat,
-              selectedDayPredicate: (day) {
-                return isSameDay(_selectedDay, day);
-              },
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
               onDaySelected: (selectedDay, focusedDay) {
                 if (!isSameDay(_selectedDay, selectedDay)) {
                   setState(() {
@@ -85,31 +83,17 @@ class _PhysioCalendarScreenState extends State<PhysioCalendarScreen> {
               },
               onFormatChanged: (format) {
                 if (_calendarFormat != format) {
-                  setState(() {
-                    _calendarFormat = format;
-                  });
+                  setState(() => _calendarFormat = format);
                 }
               },
-              onPageChanged: (focusedDay) {
-                _focusedDay = focusedDay;
-              },
-              // Diseño y colores para que combine con Mon TI Labs
+              onPageChanged: (focusedDay) => _focusedDay = focusedDay,
               calendarStyle: CalendarStyle(
-                todayDecoration: BoxDecoration(
-                  color: Colors.teal.shade200,
-                  shape: BoxShape.circle,
-                ),
-                selectedDecoration: const BoxDecoration(
-                  color: Colors.teal,
-                  shape: BoxShape.circle,
-                ),
-                markerDecoration: const BoxDecoration(
-                  color: Colors.orange,
-                  shape: BoxShape.circle,
-                ),
+                todayDecoration: BoxDecoration(color: Colors.teal.shade200, shape: BoxShape.circle),
+                selectedDecoration: const BoxDecoration(color: darkSlate, shape: BoxShape.circle), // Selección en Dark Slate
+                markerDecoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
               ),
               headerStyle: const HeaderStyle(
-                formatButtonVisible: true, // Permite al fisio colapsar el mes a semanas
+                formatButtonVisible: true,
                 titleCentered: true,
                 formatButtonShowsNext: false,
               ),
@@ -121,72 +105,70 @@ class _PhysioCalendarScreenState extends State<PhysioCalendarScreen> {
             ),
           ),
           
-          // Línea divisoria para separar el calendario del historial
           Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
 
-          // LA LÍNEA DE TIEMPO UNIFICADA (Intacta)
+          // LÍNEA DE TIEMPO UNIFICADA
           Expanded(
-            child: Container(
-              color: Colors.grey.shade50,
-              child: StreamBuilder<QuerySnapshot>(
-                stream: workoutStream,
-                builder: (context, workoutSnapshot) {
-                  return StreamBuilder<QuerySnapshot>(
-                    stream: dailyLogStream,
-                    builder: (context, dailySnapshot) {
-                      
-                      if (workoutSnapshot.connectionState == ConnectionState.waiting || dailySnapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator(color: Colors.teal));
-                      }
+            child: StreamBuilder<QuerySnapshot>(
+              stream: workoutStream,
+              builder: (context, workoutSnapshot) {
+                return StreamBuilder<QuerySnapshot>(
+                  stream: dailyLogStream,
+                  builder: (context, dailySnapshot) {
+                    
+                    if (workoutSnapshot.connectionState == ConnectionState.waiting || dailySnapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: Colors.teal));
+                    }
 
-                      final workoutDocs = workoutSnapshot.data?.docs ?? [];
-                      final dailyDocs = dailySnapshot.data?.docs ?? [];
-                      final allLogs = [...workoutDocs, ...dailyDocs];
+                    final workoutDocs = workoutSnapshot.data?.docs ?? [];
+                    final dailyDocs = dailySnapshot.data?.docs ?? [];
+                    final allLogs = [...workoutDocs, ...dailyDocs];
 
-// ESTADO VACÍO: Si ese día nadie hizo nada
-                      if (allLogs.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.event_busy, size: 80, color: Colors.teal.shade100),
-                              const SizedBox(height: 16),
-                              Text('Día libre. No hay registros.', style: const TextStyle(color: Colors.grey, fontSize: 16)),
-                            ],
-                          ),
-                        );
-                      }
-
-                      // Ordenar la lista combinada (lo más reciente arriba)
-                      allLogs.sort((a, b) {
-                        final dataA = a.data() as Map<String, dynamic>;
-                        final dataB = b.data() as Map<String, dynamic>;
-                        final Timestamp timeA = dataA['date'] ?? Timestamp.now();
-                        final Timestamp timeB = dataB['date'] ?? Timestamp.now();
-                        return timeB.compareTo(timeA); 
-                      });
-
-                      // 4. DIBUJAMOS LA TARJETA CORRECTA SEGÚN EL TIPO DE DOCUMENTO
-                      return ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: allLogs.length,
-                        itemBuilder: (context, index) {
-                          final logData = allLogs[index].data() as Map<String, dynamic>;
-                          
-                          // Si tiene 'exerciseName', es una rutina. Si tiene 'generalPain', es un diario.
-                          if (logData.containsKey('exerciseName')) {
-                            return TimelineCard(log: logData);
-                          } else {
-                            return DailyLogCard(log: logData);
-                          }
-                        },
+                    if (allLogs.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.05), blurRadius: 20)]),
+                              child: Icon(Icons.event_busy, size: 64, color: Colors.teal.shade200),
+                            ),
+                            const SizedBox(height: 24),
+                            const Text('Agenda Despejada', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: darkSlate)),
+                            const SizedBox(height: 8),
+                            const Text('No hay registros de pacientes en este día.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                          ],
+                        ),
                       );
-                    },
-                  );
-                },
-              ), // Cierra el StreamBuilder
-            ), // Cierra el Container gris
-          ), // Cierra el Expanded
+                    }
+
+                    allLogs.sort((a, b) {
+                      final dataA = a.data() as Map<String, dynamic>;
+                      final dataB = b.data() as Map<String, dynamic>;
+                      final Timestamp timeA = dataA['date'] ?? Timestamp.now();
+                      final Timestamp timeB = dataB['date'] ?? Timestamp.now();
+                      return timeB.compareTo(timeA); 
+                    });
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(20),
+                      itemCount: allLogs.length,
+                      itemBuilder: (context, index) {
+                        final logData = allLogs[index].data() as Map<String, dynamic>;
+                        
+                        if (logData.containsKey('exerciseName')) {
+                          return TimelineCard(log: logData);
+                        } else {
+                          return DailyLogCard(log: logData);
+                        }
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -194,7 +176,7 @@ class _PhysioCalendarScreenState extends State<PhysioCalendarScreen> {
 }
 
 // ------------------------------------------------------------------------
-// WIDGET 1: Tarjeta para los ejercicios completados (Intacta)
+// WIDGET 1: TARJETA DE EJERCICIOS (SaaS Style)
 // ------------------------------------------------------------------------
 class TimelineCard extends StatelessWidget {
   final Map<String, dynamic> log;
@@ -207,56 +189,63 @@ class TimelineCard extends StatelessWidget {
     final int? rpe = log['rpe'];
     final int? eva = log['eva'];
     
-    // Formatear la fecha
     final Timestamp? timestamp = log['date'] as Timestamp?;
-    String timeStr = 'Hora desconocida';
+    String timeStr = '--:--';
     if (timestamp != null) {
       final date = timestamp.toDate();
-      timeStr = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} - ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      timeStr = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     }
 
-    // Buscamos el nombre del paciente en tiempo real
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('patients').doc(patientId).get(),
       builder: (context, snapshot) {
         String patientName = 'Cargando...';
         if (snapshot.hasData && snapshot.data!.exists) {
-          patientName = snapshot.data!.get('fullName') ?? 'Paciente Desconocido';
+          patientName = snapshot.data!.get('fullName') ?? 'Paciente';
         }
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.teal.shade100, width: 1)),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.02), blurRadius: 10, offset: const Offset(0, 4))],
+          ),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
             onTap: () {
-              // Navegar al perfil del paciente al tocar la tarjeta
               if (snapshot.hasData && snapshot.data!.exists) {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => PatientProfileScreen(patientId: patientId, patientName: patientName)));
               }
             },
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(radius: 14, backgroundColor: Colors.teal.shade50, child: const Icon(Icons.fitness_center, size: 14, color: Colors.teal)),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(patientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                      Text(timeStr, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: Colors.teal.shade50, shape: BoxShape.circle),
+                        child: const Icon(Icons.fitness_center, size: 16, color: Colors.teal),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(patientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)))),
+                      Text(timeStr, style: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text('Completó: $exerciseName', style: TextStyle(color: Colors.grey.shade800, fontSize: 15)),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
+                  Text('Completó: $exerciseName', style: TextStyle(color: Colors.grey.shade700, fontSize: 15)),
+                  const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     children: [
-                      if (rpe != null) Chip(label: Text('RPE: $rpe', style: TextStyle(fontSize: 11, color: Colors.blue.shade900)), backgroundColor: Colors.blue.shade50, side: BorderSide.none, padding: EdgeInsets.zero),
-                      if (eva != null) Chip(label: Text('EVA: $eva', style: TextStyle(fontSize: 11, color: Colors.red.shade900)), backgroundColor: Colors.red.shade50, side: BorderSide.none, padding: EdgeInsets.zero),
+                      if (rpe != null) 
+                        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(8)), child: Text('RPE: $rpe', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue.shade700))),
+                      if (eva != null) 
+                        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)), child: Text('EVA: $eva', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red.shade700))),
                     ],
                   ),
                 ],
@@ -270,7 +259,7 @@ class TimelineCard extends StatelessWidget {
 }
 
 // ------------------------------------------------------------------------
-// WIDGET 2: NUEVA Tarjeta para la Bitácora de Bienestar
+// WIDGET 2: TARJETA DE BITÁCORA (SaaS Style)
 // ------------------------------------------------------------------------
 class DailyLogCard extends StatelessWidget {
   final Map<String, dynamic> log;
@@ -284,10 +273,10 @@ class DailyLogCard extends StatelessWidget {
     final String notes = log['notes'] ?? '';
     
     final Timestamp? timestamp = log['date'] as Timestamp?;
-    String timeStr = 'Hora desconocida';
+    String timeStr = '--:--';
     if (timestamp != null) {
       final date = timestamp.toDate();
-      timeStr = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} - ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      timeStr = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     }
 
     return FutureBuilder<DocumentSnapshot>(
@@ -298,48 +287,60 @@ class DailyLogCard extends StatelessWidget {
           patientName = snapshot.data!.get('fullName') ?? 'Paciente';
         }
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.orange.shade100, width: 1)),
-          color: Colors.orange.shade50.withValues(alpha: 0.3),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.orange.shade100),
+            boxShadow: [BoxShadow(color: Colors.orange.withValues(alpha:0.05), blurRadius: 10, offset: const Offset(0, 4))],
+          ),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
             onTap: () {
               if (snapshot.hasData && snapshot.data!.exists) {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => PatientProfileScreen(patientId: patientId, patientName: patientName)));
               }
             },
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(radius: 14, backgroundColor: Colors.orange.shade100, child: const Icon(Icons.mood, size: 14, color: Colors.orange)),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(patientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                      Text(timeStr, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle),
+                        child: const Icon(Icons.mood, size: 16, color: Colors.orange),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(patientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)))),
+                      Text(timeStr, style: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  const Text('Registró su bitácora diaria', style: TextStyle(fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
+                  const Text('Registró su bitácora diaria', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Icon(Icons.healing, size: 16, color: pain > 6 ? Colors.red : Colors.green),
                       const SizedBox(width: 4),
-                      Text('Dolor: $pain', style: const TextStyle(fontSize: 13)),
+                      Text('Dolor: $pain', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                       const SizedBox(width: 16),
-                      Icon(Icons.battery_charging_full, size: 16, color: Colors.blue),
+                      const Icon(Icons.battery_charging_full, size: 16, color: Colors.blue),
                       const SizedBox(width: 4),
-                      Text('Fatiga: $fatigue', style: const TextStyle(fontSize: 13)),
+                      Text('Fatiga: $fatigue', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   if (notes.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text('"$notes"', style: TextStyle(color: Colors.grey.shade700, fontStyle: FontStyle.italic, fontSize: 13)),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12)),
+                      child: Text('"$notes"', style: TextStyle(color: Colors.grey.shade700, fontStyle: FontStyle.italic, fontSize: 13)),
+                    ),
                   ]
                 ],
               ),

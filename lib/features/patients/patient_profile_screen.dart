@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-//import '../notifications/notification_bell.dart';
-import 'create_routine_screen.dart'; // Para crear la rutina
+import 'create_routine_screen.dart'; 
 import 'physio_routine_detail_screen.dart';
-import 'clinical_evaluation_screen.dart';
+//import 'clinical_evaluation_screen.dart';
 import 'clinical_history_list_screen.dart';
-import 'package:shimmer/shimmer.dart';
 import 'select_template_screen.dart';
 import 'patient_logs_history_screen.dart';
 
-class PatientProfileScreen extends StatelessWidget {
+class PatientProfileScreen extends StatefulWidget {
   final String patientId;
   final String patientName;
 
@@ -19,474 +17,176 @@ class PatientProfileScreen extends StatelessWidget {
     required this.patientName,
   });
 
-  Future<void> _archivePatient(BuildContext context) async {
-    // 1. Mostrar diálogo de confirmación por seguridad
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('¿Dar de alta / Archivar paciente?'),
-        content: const Text(
-          'El paciente ya no aparecerá en tu lista principal.\n\n'
-          '💡 Nota importante: Su expediente, audios y datos clínicos seguirán resguardados en la nube por seguridad médica. Por lo tanto, archivar a un paciente no libera espacios de tu cuota actual.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Archivar',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    // 2. Si el fisio confirma, hacemos el Soft Delete
-    if (confirm == true) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('patients')
-            .doc(patientId)
-            .update({'status': 'archived'});
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Paciente archivado correctamente.')),
-          );
-          // 3. Lo regresamos al Dashboard automáticamente
-          Navigator.pop(context);
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error al archivar: $e')));
-        }
-      }
-    }
-  }
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Perfil: $patientName'),
-        //title: Text('Perfil del Paciente'),
-        actions: [
-          // ¡Aquí inyectamos nuestra campanita inteligente!
-          //  NotificationBell(userId: patientId), // Asegúrate de pasarle el ID real del usuario
-          // Botón para archivar paciente
-          IconButton(
-            icon: const Icon(Icons.archive_outlined),
-            color: Colors
-                .red
-                .shade200, // Un color sutil para no asustar, pero indicar precaución
-            tooltip: 'Archivar paciente',
-            onPressed: () => _archivePatient(context),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // NUEVO BOTÓN PARA EVALUACIÓN CLÍNICA
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ClinicalEvaluationScreen(
-                        patientId: patientId,
-                        patientName: patientName,
-                      ),
-                    ),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: const BorderSide(color: Colors.teal, width: 2),
-                ),
-                icon: const Icon(Icons.assignment_ind, color: Colors.teal),
-                label: const Text(
-                  'Nueva Evaluación Clínica',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.teal,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // ... (Aquí termina tu botón anterior de Nueva Evaluación Clínica) ...
-            const SizedBox(height: 12), // Espacio entre botones
-            // NUEVO BOTÓN: Ver Expediente Clínico
-            SizedBox(
-              width: double.infinity,
-              child: TextButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ClinicalHistoryListScreen(
-                        patientId: patientId,
-                        patientName: patientName,
-                      ),
-                    ),
-                  );
-                },
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.teal.shade50,
-                ),
-                icon: const Icon(Icons.folder_shared, color: Colors.teal),
-                label: const Text(
-                  'Ver Expediente Clínico',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.teal,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // BOTÓN PARA VER REPORTES DE BIENESTAR
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PatientLogsHistoryScreen(
-                          patientId: patientId, // O solo patientId si es StatelessWidget
-                          patientName: patientName,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.favorite_border),
-                  label: const Text('Ver Reportes de Bienestar'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.teal,
-                    side: const BorderSide(color: Colors.teal),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ),
-
-            const Text(
-              'Rutinas Asignadas',
-              // ... (El resto de tu código continúa igual) ...
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const Divider(),
-
-            // Placeholder temporal para la lista de rutinas
-            // Lista Reactiva de Rutinas
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                // Consultamos la colección 'routines' filtrando por este paciente en específico
-                stream: FirebaseFirestore.instance
-                    .collection('routines')
-                    .where('patientId', isEqualTo: patientId)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: 4, // 4 rutinas fantasma
-                      itemBuilder: (context, index) =>
-                          const RoutineCardShimmer(),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return const Center(
-                      child: Text(
-                        'Error al cargar las rutinas.',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    );
-                  }
-
-                  final routineDocs = snapshot.data?.docs ?? [];
-
-                  //  if (routineDocs.isEmpty) {
-                  // Empty State de las Rutinas
-                  if (routineDocs.isEmpty) {
-                    // Asegúrate de usar el nombre de tu variable de lista aquí
-                    return Center(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.teal.shade50,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.fitness_center, // Ícono de ejercicio
-                                size: 80,
-                                color: Colors.teal.shade300,
-                              ),
-                            ),
-                            const SizedBox(height: 32),
-                            const Text(
-                              'Sin plan de rehabilitación',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.teal,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Es momento de poner a este paciente en movimiento. Toca el botón de agregar para diseñar su primera rutina de ejercicios personalizados.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                                height: 1.5,
-                              ),
-                            ),
-                            // Opcional: Si en esta pantalla TIENES un FloatingActionButton,
-                            // puedes pegar aquí el mismo código de la flecha que usamos en el Dashboard.
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 32.0),
-                                child: Transform.rotate(
-                                  // Rota la flecha hacia abajo a la derecha (↘)
-                                  angle: -0.5,
-                                  child: Icon(
-                                    Icons.arrow_downward_rounded,
-                                    size: 48,
-                                    color: Colors.teal.shade200,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    itemCount: routineDocs.length,
-                    itemBuilder: (context, index) {
-                      final routineData =
-                          routineDocs[index].data() as Map<String, dynamic>;
-                      final String title =
-                          routineData['title'] ?? 'Rutina sin título';
-                      final bool isActive = routineData['isActive'] ?? false;
-
-                      // Como guardamos los ejercicios en un arreglo, podemos saber cuántos son fácilmente
-                      final List exercises = routineData['exercises'] ?? [];
-                      final String routineId = routineDocs[index].id;
-
-                      return Card(
-                        elevation: 2,
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          leading: CircleAvatar(
-                            backgroundColor: isActive
-                                ? Colors.teal.shade100
-                                : Colors.grey.shade200,
-                            child: Icon(
-                              Icons.fitness_center,
-                              color: isActive ? Colors.teal : Colors.grey,
-                            ),
-                          ),
-                          title: Text(
-                            title,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(
-                            '${exercises.length} ejercicios asignados',
-                          ),
-                          trailing: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? Colors.green.shade50
-                                  : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              isActive ? 'Activa' : 'Inactiva',
-                              style: TextStyle(
-                                color: isActive ? Colors.green : Colors.grey,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          onTap: () {
-                            // Ahora el fisio ve el detalle administrativo de su rutina
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PhysioRoutineDetailScreen(
-                                  routineData: routineData,
-                                  routineId: routineId,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      // Botón extendido para dejar muy clara la acción principal
-      // NUEVO BOTÓN FLOTANTE INTELIGENTE (Bottom Sheet)
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            builder: (context) => SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text('Asignar Plan de Rehabilitación', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  ),
-                  
-                  // OPCIÓN A: IMPORTAR PLANTILLA
-                  ListTile(
-                    leading: const Icon(Icons.library_books, color: Colors.teal),
-                    title: const Text('Importar desde Biblioteca'),
-                    subtitle: const Text('Usa una plantilla preconfigurada'),
-                    onTap: () {
-                      Navigator.pop(context); // Cierra el menú deslizable
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SelectTemplateScreen(
-                            patientId: patientId, 
-                            patientName: patientName,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  
-                  // OPCIÓN B: CREAR DESDE CERO (Tu flujo original)
-                  ListTile(
-                    leading: const Icon(Icons.edit, color: Colors.blue),
-                    title: const Text('Crear desde cero'),
-                    subtitle: const Text('Diseña una rutina paso a paso'),
-                    onTap: () {
-                      Navigator.pop(context); // Cierra el menú deslizable
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CreateRoutineScreen(
-                            patientId: patientId,
-                            patientName: patientName,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-          );
-        },
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_task), // Ícono actualizado para que coincida con la acción
-        label: const Text('Asignar Rutina'),
-      ),
-    );
-  }
+  State<PatientProfileScreen> createState() => _PatientProfileScreenState();
 }
 
-// NUEVO: El molde animado para las Rutinas
-class RoutineCardShimmer extends StatelessWidget {
-  const RoutineCardShimmer({super.key});
+class _PatientProfileScreenState extends State<PatientProfileScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  late Stream<QuerySnapshot> _routinesStream;
+  late Stream<QuerySnapshot> _workoutLogsStream;
+  late Stream<QuerySnapshot> _dailyLogsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+
+    _routinesStream = FirebaseFirestore.instance.collection('routines').where('patientId', isEqualTo: widget.patientId).where('isActive', isEqualTo: true).snapshots();
+    _workoutLogsStream = FirebaseFirestore.instance.collection('workout_logs').where('patientId', isEqualTo: widget.patientId).orderBy('date', descending: true).snapshots();
+    _dailyLogsStream = FirebaseFirestore.instance.collection('daily_logs').where('patientId', isEqualTo: widget.patientId).orderBy('date', descending: true).snapshots();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
-          child: Container(
-            height: 50,
-            width: 50,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-        title: Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
-          child: Container(
-            height: 16,
-            width: double.infinity,
-            color: Colors.white,
-          ),
-        ),
-        subtitle: Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
-          child: Container(
-            height: 14,
-            width: 150,
-            color: Colors.white,
-            margin: const EdgeInsets.only(top: 8),
-          ),
+    const Color darkSlate = Color(0xFF0F172A);
+
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50, 
+      appBar: AppBar(
+        backgroundColor: darkSlate,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(widget.patientName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.tealAccent,
+          labelColor: Colors.tealAccent,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+          tabs: const [Tab(text: 'RUTINAS ACTIVAS'), Tab(text: 'HISTORIAL CLÍNICO')],
         ),
       ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [_buildRoutinesTab(darkSlate), _buildHistoryTab(darkSlate)],
+      ),
+    );
+  }
+
+  Widget _buildRoutinesTab(Color darkSlate) {
+    return Column(
+      children: [
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SelectTemplateScreen(patientId: widget.patientId, patientName: widget.patientName))), icon: const Icon(Icons.library_books, size: 18), label: const Text('Usar Plantilla'), style: OutlinedButton.styleFrom(foregroundColor: darkSlate, side: BorderSide(color: Colors.grey.shade300)))),
+              const SizedBox(width: 12),
+              Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => CreateRoutineScreen(patientId: widget.patientId, patientName: widget.patientName))), icon: const Icon(Icons.edit, size: 18), label: const Text('Crear Manual'), style: OutlinedButton.styleFrom(foregroundColor: Colors.teal.shade700, side: BorderSide(color: Colors.teal.shade100)))),
+            ],
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _routinesStream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.teal));
+              final docs = snapshot.data?.docs ?? [];
+              if (docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.history_edu, size: 64, color: Colors.grey.shade300), const SizedBox(height: 16), Text('Sin rutinas activas.', style: TextStyle(color: Colors.grey.shade600, fontSize: 16))]));
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(20),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final routine = docs[index].data() as Map<String, dynamic>;
+                  final String routineId = docs[index].id;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))]),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      title: Text(routine['title'] ?? 'Rutina', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: darkSlate, letterSpacing: -0.5)),
+                      subtitle: Padding(padding: const EdgeInsets.only(top: 8.0), child: Text('${(routine['exercises'] ?? []).length} ejercicios asignados', style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w600))),
+                      trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PhysioRoutineDetailScreen(routineData: routine, routineId: routineId))),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHistoryTab(Color darkSlate) {
+    return Column(
+      children: [
+        // ¡AQUÍ ESTÁN LOS BOTONES DE LA IA Y LA BITÁCORA RESTAURADOS!
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ClinicalHistoryListScreen(patientId: widget.patientId, patientName: widget.patientName))),
+                  icon: const Icon(Icons.folder_shared),
+                  label: const Text('Expediente Clínico e IA', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade50, foregroundColor: Colors.teal.shade800, elevation: 0),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PatientLogsHistoryScreen(patientId: widget.patientId, patientName: widget.patientName))),
+                  icon: const Icon(Icons.favorite_border),
+                  label: const Text('Ver Reportes de Bienestar'),
+                  style: OutlinedButton.styleFrom(foregroundColor: Colors.orange.shade700, side: BorderSide(color: Colors.orange.shade200)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
+        
+        // LA LÍNEA DE TIEMPO
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _workoutLogsStream,
+            builder: (context, workoutSnapshot) {
+              return StreamBuilder<QuerySnapshot>(
+                stream: _dailyLogsStream,
+                builder: (context, dailySnapshot) {
+                  if (workoutSnapshot.connectionState == ConnectionState.waiting || dailySnapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.teal));
+                  final allLogs = [...(workoutSnapshot.data?.docs ?? []), ...(dailySnapshot.data?.docs ?? [])];
+                  if (allLogs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.timeline, size: 64, color: Colors.grey.shade300), const SizedBox(height: 16), Text('El historial de actividad está en blanco.', style: TextStyle(color: Colors.grey.shade600, fontSize: 16))]));
+
+                  allLogs.sort((a, b) => ((b.data() as Map<String, dynamic>)['date'] ?? Timestamp.now()).compareTo((a.data() as Map<String, dynamic>)['date'] ?? Timestamp.now()));
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: allLogs.length,
+                    itemBuilder: (context, index) {
+                      final logData = allLogs[index].data() as Map<String, dynamic>;
+                      final Timestamp? timestamp = logData['date'] as Timestamp?;
+                      String dateStr = timestamp != null ? '${timestamp.toDate().day.toString().padLeft(2, '0')}/${timestamp.toDate().month.toString().padLeft(2, '0')}/${timestamp.toDate().year}' : '--/--';
+
+                      if (logData.containsKey('exerciseName')) {
+                        return Container(margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)), child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.teal.shade50, shape: BoxShape.circle), child: const Icon(Icons.fitness_center, size: 16, color: Colors.teal)), title: Text(logData['exerciseName'] ?? 'Ejercicio', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: darkSlate, letterSpacing: -0.5)), subtitle: const Padding(padding: EdgeInsets.only(top: 4.0), child: Text('Entrenamiento', style: TextStyle(color: Colors.grey))), trailing: Text(dateStr, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold))));
+                      } else {
+                        return Container(margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.orange.shade100)), child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.orange.shade50, shape: BoxShape.circle), child: const Icon(Icons.mood, size: 16, color: Colors.orange)), title: Text('Check-in Diario', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: darkSlate, letterSpacing: -0.5)), subtitle: const Padding(padding: EdgeInsets.only(top: 4.0), child: Text('Bienestar', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600, fontSize: 13))), trailing: Text(dateStr, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold))));
+                      }
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

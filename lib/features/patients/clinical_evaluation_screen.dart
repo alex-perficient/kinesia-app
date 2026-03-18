@@ -23,8 +23,7 @@ class ClinicalEvaluationScreen extends StatefulWidget {
   });
 
   @override
-  State<ClinicalEvaluationScreen> createState() =>
-      _ClinicalEvaluationScreenState();
+  State<ClinicalEvaluationScreen> createState() => _ClinicalEvaluationScreenState();
 }
 
 class _ClinicalEvaluationScreenState extends State<ClinicalEvaluationScreen> {
@@ -41,7 +40,6 @@ class _ClinicalEvaluationScreenState extends State<ClinicalEvaluationScreen> {
   bool _isRecording = false;
   String? _audioPath;
 
-  // NUEVAS VARIABLES FREEMIUM
   bool _isLoadingStatus = true;
   bool _isAiLocked = false;
 
@@ -49,25 +47,16 @@ class _ClinicalEvaluationScreenState extends State<ClinicalEvaluationScreen> {
   void initState() {
     super.initState();
     _audioRecorder = AudioRecorder();
-    _checkFreemiumStatus(); // Verificamos el plan al abrir la pantalla
+    _checkFreemiumStatus(); 
   }
 
-  // NUEVA FUNCIÓN: Valida si tiene derecho a usar IA
   Future<void> _checkFreemiumStatus() async {
     try {
       final physioId = FirebaseAuth.instance.currentUser!.uid;
-      final doc = await FirebaseFirestore.instance
-          .collection('physiotherapists')
-          .doc(physioId)
-          .get();
-
+      final doc = await FirebaseFirestore.instance.collection('physiotherapists').doc(physioId).get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
-        final String plan = data['plan'] ?? 'free';
-        final int count = data['patientCount'] ?? 0;
-
-        // Si es gratuito y ya llegó a su cuota de volumen (15)
-        if (plan == 'free' && count >= 15) {
+        if ((data['plan'] ?? 'free') == 'free' && (data['patientCount'] ?? 0) >= 15) {
           setState(() => _isAiLocked = true);
         }
       }
@@ -79,13 +68,8 @@ class _ClinicalEvaluationScreenState extends State<ClinicalEvaluationScreen> {
   }
 
   Future<void> _runAIAnalysis() async {
-    if (_notesController.text.trim().isEmpty &&
-        (_audioPath == null || _audioPath!.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, escribe notas o graba un audio primero.'),
-        ),
-      );
+    if (_notesController.text.trim().isEmpty && (_audioPath == null || _audioPath!.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Escribe notas o graba un audio primero.')));
       return;
     }
 
@@ -93,63 +77,37 @@ class _ClinicalEvaluationScreenState extends State<ClinicalEvaluationScreen> {
 
     try {
       final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-
-      final model = GenerativeModel(
-        model: 'gemini-3-flash-preview',
-        apiKey: apiKey,
-      );
+      final model = GenerativeModel(model: 'gemini-3-flash-preview', apiKey: apiKey);
 
       final promptText = '''
-Eres un asistente médico experto en fisioterapia. Analiza la consulta (ya sea en texto o audio). 
-Extrae y profesionaliza lo siguiente: 
-1. "diagnosis" (Diagnóstico clínico probable o descrito)
-2. "objectives" (Objetivos terapéuticos a corto/largo plazo)
-3. "painZones" (Zonas de dolor y nivel EVA si se menciona)
-4. "transcription" (Si recibes un audio, transcribe literalmente lo que el doctor dijo. Si solo recibes texto, devuelve el mismo texto).
-
-Responde ÚNICAMENTE con un JSON válido con esas 4 llaves exactas en minúsculas. No agregues texto extra ni formato markdown.
-
-REGLA CRÍTICA: Si el texto o audio que recibes está vacío, solo hay silencio, es incomprensible o no contiene información médica real, tienes estrictamente prohibido inventar datos. En ese caso, debes responder obligatoriamente con este JSON exacto:
-{"diagnosis": "Datos insuficientes", "objectives": "Datos insuficientes", "painZones": "Datos insuficientes", "transcription": "No se detectó información médica clara. Por favor, intenta grabar de nuevo."}
+Eres un asistente médico experto en fisioterapia. Analiza la consulta. 
+Extrae: 1. "diagnosis" 2. "objectives" 3. "painZones" 4. "transcription".
+Responde ÚNICAMENTE con un JSON válido con esas 4 llaves exactas en minúsculas.
 ''';
 
       List<Part> promptParts = [TextPart(promptText)];
 
       if (_audioPath != null && _audioPath!.isNotEmpty) {
-        final audioFile = File(_audioPath!);
-        final audioBytes = await audioFile.readAsBytes();
-        promptParts.add(DataPart('audio/mp4', audioBytes));
+        promptParts.add(DataPart('audio/mp4', await File(_audioPath!).readAsBytes()));
       } else {
-        promptParts.add(
-          TextPart('\nNOTAS DE LA CONSULTA:\n${_notesController.text}'),
-        );
+        promptParts.add(TextPart('\nNOTAS:\n${_notesController.text}'));
       }
 
-      final content = [Content.multi(promptParts)];
-      final response = await model.generateContent(content);
-
-      String rawJson = response.text ?? '{}';
-      rawJson = rawJson.replaceAll('```json', '').replaceAll('```', '').trim();
+      final response = await model.generateContent([Content.multi(promptParts)]);
+      String rawJson = (response.text ?? '{}').replaceAll('```json', '').replaceAll('```', '').trim();
       final data = jsonDecode(rawJson);
 
       setState(() {
         _diagnosisController.text = data['diagnosis'] ?? 'No detectado';
         _objectivesController.text = data['objectives'] ?? 'No detectado';
         _painZonesController.text = data['painZones'] ?? 'No detectado';
-
-        if (_audioPath != null && _audioPath!.isNotEmpty) {
-          _notesController.text =
-              data['transcription'] ?? 'No se pudo generar la transcripción.';
-        }
-
+        if (_audioPath != null && _audioPath!.isNotEmpty) _notesController.text = data['transcription'] ?? 'Sin transcripción.';
         _isAnalyzing = false;
         _showResults = true;
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error de IA: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error de IA: $e')));
         setState(() => _isAnalyzing = false);
       }
     }
@@ -157,28 +115,11 @@ REGLA CRÍTICA: Si el texto o audio que recibes está vacío, solo hay silencio,
 
   Future<void> _saveEvaluation() async {
     setState(() => _isSaving = true);
-
     try {
       String? uploadedAudioUrl;
-
       if (_audioPath != null && _audioPath!.isNotEmpty) {
-        final fileName =
-            '${widget.patientId}_${DateTime.now().millisecondsSinceEpoch}.m4a';
-        final storageRef = FirebaseStorage.instance.ref().child(
-          'audios_clinicos/$fileName',
-        );
-
-        if (kIsWeb) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Nota: La subida de audio real se probará en el dispositivo Android.',
-              ),
-            ),
-          );
-        } else {
-          final file = File(_audioPath!);
-          final uploadTask = await storageRef.putFile(file);
+        if (!kIsWeb) {
+          final uploadTask = await FirebaseStorage.instance.ref().child('audios_clinicos/${widget.patientId}_${DateTime.now().millisecondsSinceEpoch}.m4a').putFile(File(_audioPath!));
           uploadedAudioUrl = await uploadTask.ref.getDownloadURL();
         }
       }
@@ -193,26 +134,14 @@ REGLA CRÍTICA: Si el texto o audio que recibes está vacío, solo hay silencio,
         'audioUrl': uploadedAudioUrl,
       });
 
-      await NotificationService.sendNotification(
-        receiverId: widget.patientId,
-        title: 'Nuevo Expediente Clínico',
-        body: 'Tu fisioterapeuta ha actualizado tus notas de evolución.',
-      );
+      await NotificationService.sendNotification(receiverId: widget.patientId, title: 'Nuevo Expediente Clínico', body: 'Tu fisioterapeuta ha actualizado tus notas.');
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Expediente clínico guardado con éxito ✅'),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Expediente clínico guardado ✅')));
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -222,375 +151,139 @@ REGLA CRÍTICA: Si el texto o audio que recibes está vacío, solo hay silencio,
     try {
       if (_isRecording) {
         final path = await _audioRecorder.stop();
-        setState(() {
-          _isRecording = false;
-          _audioPath = path;
-          _notesController.text = "Audio grabado y listo para analizar.";
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Audio guardado exitosamente.')),
-          );
-        }
+        setState(() { _isRecording = false; _audioPath = path; _notesController.text = "Audio listo para analizar."; });
       } else {
         if (await _audioRecorder.hasPermission()) {
           String tempPath = '';
-          if (!kIsWeb) {
-            final tempDir = await getTemporaryDirectory();
-            tempPath =
-                '${tempDir.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
-          }
-
-          await _audioRecorder.start(
-            const RecordConfig(encoder: AudioEncoder.aacLc),
-            path: tempPath,
-          );
-
-          setState(() {
-            _isRecording = true;
-          });
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Necesitas dar permisos de micrófono.'),
-              ),
-            );
-          }
+          if (!kIsWeb) tempPath = '${(await getTemporaryDirectory()).path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+          await _audioRecorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: tempPath);
+          setState(() => _isRecording = true);
         }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error con el micrófono: $e')));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error micrófono: $e')));
     }
   }
 
   @override
   void dispose() {
-    _notesController.dispose();
-    _diagnosisController.dispose();
-    _objectivesController.dispose();
-    _painZonesController.dispose();
-    _audioRecorder.dispose();
+    _notesController.dispose(); _diagnosisController.dispose(); _objectivesController.dispose(); _painZonesController.dispose(); _audioRecorder.dispose();
     super.dispose();
+  }
+
+  // Helpers para diseño limpio
+  InputDecoration _premiumInput(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label, labelStyle: TextStyle(color: Colors.grey.shade600), prefixIcon: Icon(icon, color: Colors.teal),
+      filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Si está consultando la BD, mostramos carga
-    if (_isLoadingStatus) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text('Evaluación: ${widget.patientName}'),
-          backgroundColor: Colors.teal,
-        ),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
+    const Color darkSlate = Color(0xFF0F172A);
+
+    if (_isLoadingStatus) return Scaffold(appBar: AppBar(backgroundColor: darkSlate, title: const Text('Cargando...')), body: const Center(child: CircularProgressIndicator()));
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text('Evaluación: ${widget.patientName}'),
-        backgroundColor: Colors.teal,
+        title: const Text('Evaluación Asistida', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
+        backgroundColor: darkSlate,
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ==========================================
-            // NUEVO: EL PAYWALL FREEMIUM
-            // ==========================================
+            // EL PAYWALL FREEMIUM
             if (_isAiLocked) ...[
               Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.purple.shade700, Colors.purple.shade500],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.purple.withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(color: darkSlate, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.1), blurRadius: 15, offset: const Offset(0, 5))]),
                 child: Column(
                   children: [
-                    const Icon(
-                      Icons.auto_awesome,
-                      color: Colors.white,
-                      size: 40,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Límite Gratuito Alcanzado',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Has superado tu cuota de pacientes. Reactiva el poder del dictado por voz y la Inteligencia Artificial por solo \$100 MXN mensuales.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white, height: 1.4),
-                    ),
+                    const Icon(Icons.auto_awesome, color: Colors.amber, size: 48),
                     const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () async {
-                        // 1. Preparamos el mensaje y el número
-                        const phoneNumber =
-                            '529332443982'; // Pon tu número aquí
-                        const message =
-                            'Hola Mon TI Labs, quiero actualizar mi cuenta de Kines.ia al plan Premium para desbloquear la Inteligencia Artificial. 🚀';
-
-                        // 2. Codificamos la URL para que WhatsApp la entienda
-                        final Uri whatsappUrl = Uri.parse(
-                          'https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}',
-                        );
-
-                        // 3. Intentamos abrir la app de WhatsApp
-                        try {
-                          if (await canLaunchUrl(whatsappUrl)) {
-                            await launchUrl(
-                              whatsappUrl,
-                              mode: LaunchMode.externalApplication,
-                            );
-                          } else {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'No se pudo abrir WhatsApp. Escríbenos al $phoneNumber',
-                                  ),
-                                ),
-                              );
-                            }
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Error al abrir el enlace.'),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.purple.shade700,
-                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      child: const Text('Actualizar Plan (WhatsApp)'),
-                    ),
+                    const Text('Límite de IA Alcanzado', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
+                    const SizedBox(height: 8),
+                    const Text('Has superado tu cuota. Reactiva el poder del dictado por voz y la extracción automática por \$100 MXN.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, height: 1.4)),
+                    const SizedBox(height: 24),
+                    SizedBox(width: double.infinity, height: 50, child: ElevatedButton(onPressed: () async { const p = '529332443982'; const m = 'Hola Mon TI Labs, quiero actualizar mi cuenta de Kines.ia al plan Premium para desbloquear la Inteligencia Artificial. 🚀'; final u = Uri.parse('https://wa.me/$p?text=${Uri.encodeComponent(m)}'); if (await canLaunchUrl(u)) { await launchUrl(u, mode: LaunchMode.externalApplication); } }, style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: darkSlate, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: const Text('Actualizar Plan (WhatsApp)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
                   ],
                 ),
               ),
               const SizedBox(height: 32),
-
-              // Instrucción para el llenado manual
-              const Text(
-                '📝 Captura Manual (Modo Básico)',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Puedes continuar guardando el expediente clínico ingresando los datos manualmente a continuación.',
-                style: TextStyle(color: Colors.grey),
-              ),
+              const Text('Captura Manual (Básica)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: darkSlate)),
               const SizedBox(height: 24),
             ],
 
-            // ==========================================
-            // INTERFAZ ORIGINAL (Oculta micrófono si está bloqueado)
-            // ==========================================
+            // GRABADORA IA
             if (!_isAiLocked) ...[
-              const Text(
-                'Consulta y Notas',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              Center(
-                child: GestureDetector(
-                  onTap: _toggleRecording,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    height: 80,
-                    width: 80,
-                    decoration: BoxDecoration(
-                      color: _isRecording
-                          ? Colors.red.shade100
-                          : Colors.teal.shade50,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _isRecording ? Colors.red : Colors.teal,
-                        width: _isRecording ? 4 : 2,
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32), border: Border.all(color: _isRecording ? Colors.red.shade100 : Colors.transparent), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.02), blurRadius: 15)]),
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: _toggleRecording,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        height: 90, width: 90,
+                        decoration: BoxDecoration(color: _isRecording ? Colors.red : Colors.teal.shade50, shape: BoxShape.circle, boxShadow: _isRecording ? [BoxShadow(color: Colors.red.withValues(alpha:0.4), blurRadius: 20, spreadRadius: 5)] : []),
+                        child: Icon(_isRecording ? Icons.stop : Icons.mic, size: 40, color: _isRecording ? Colors.white : Colors.teal),
                       ),
                     ),
-                    child: Icon(
-                      _isRecording ? Icons.stop : Icons.mic,
-                      size: 40,
-                      color: _isRecording ? Colors.red : Colors.teal,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  _isRecording
-                      ? 'Grabando consulta... (Toca para detener)'
-                      : 'Toca para grabar al paciente',
-                  style: TextStyle(
-                    color: _isRecording ? Colors.red : Colors.grey,
-                    fontWeight: _isRecording
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
+                    const SizedBox(height: 16),
+                    Text(_isRecording ? 'Escuchando consulta...' : 'Toca para grabar al paciente', style: TextStyle(color: _isRecording ? Colors.red : darkSlate, fontWeight: FontWeight.bold, fontSize: 16)),
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
-
-              TextField(
-                controller: _notesController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  hintText: 'O escribe las notas manualmente aquí...',
-                  border: OutlineInputBorder(),
-                ),
-              ),
+              TextField(controller: _notesController, maxLines: 4, decoration: _premiumInput('O escribe las notas aquí...', Icons.edit_note)),
               const SizedBox(height: 24),
-
-              SizedBox(
-                height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: _isAnalyzing ? null : _runAIAnalysis,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple.shade600,
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: _isAnalyzing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Icon(Icons.auto_awesome),
-                  label: Text(
-                    _isAnalyzing
-                        ? 'Analizando con IA...'
-                        : 'Extraer Datos con IA',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
+              SizedBox(height: 55, child: ElevatedButton.icon(onPressed: _isAnalyzing ? null : _runAIAnalysis, style: ElevatedButton.styleFrom(backgroundColor: darkSlate, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), icon: _isAnalyzing ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.auto_awesome, color: Colors.amber), label: Text(_isAnalyzing ? 'Analizando con IA...' : 'Extraer Datos con IA', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)))),
               const SizedBox(height: 32),
-              const Divider(thickness: 2),
-              const SizedBox(height: 24),
             ],
 
-            // ==========================================
-            // SECCIÓN 2: Resultados (Se muestra si analizó IA o si está bloqueado para llenado manual)
-            // ==========================================
+            // RESULTADOS DEL FORMULARIO
             if (_showResults || _isAiLocked) ...[
-              if (_showResults && !_isAiLocked) ...[
-                const Text(
-                  'Resumen Clínico Generado',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal,
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Si está bloqueado, necesita el TextField general que reemplaza al micrófono
-              if (_isAiLocked) ...[
-                TextField(
-                  controller: _notesController,
-                  maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Notas Generales (Evolución)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              TextField(
-                controller: _diagnosisController,
-                decoration: const InputDecoration(
-                  labelText: 'Diagnóstico',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.medical_services),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: _objectivesController,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Objetivos del Paciente',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.flag),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextField(
-                controller: _painZonesController,
-                decoration: const InputDecoration(
-                  labelText: 'Zonas de Dolor',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.personal_injury),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              SizedBox(
-                height: 55,
-                child: ElevatedButton.icon(
-                  onPressed: _isSaving ? null : _saveEvaluation,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: _isSaving
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Icon(Icons.save),
-                  label: const Text(
-                    'Guardar Expediente',
-                    style: TextStyle(fontSize: 18),
-                  ),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.02), blurRadius: 15)]),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Datos Estructurados', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: darkSlate)),
+                    const SizedBox(height: 24),
+                    if (_isAiLocked) ...[TextField(controller: _notesController, maxLines: 3, decoration: _premiumInput('Notas Generales', Icons.notes)), const SizedBox(height: 16)],
+                    TextField(controller: _diagnosisController, decoration: _premiumInput('Diagnóstico', Icons.medical_services_outlined)),
+                    const SizedBox(height: 16),
+                    TextField(controller: _objectivesController, maxLines: 2, decoration: _premiumInput('Objetivos Terapéuticos', Icons.flag_outlined)),
+                    const SizedBox(height: 16),
+                    TextField(controller: _painZonesController, decoration: _premiumInput('Zonas de Dolor', Icons.personal_injury_outlined)),
+                  ],
                 ),
               ),
             ],
           ],
         ),
       ),
+      bottomNavigationBar: (_showResults || _isAiLocked) ? Container(
+        padding: const EdgeInsets.all(24),
+        color: Colors.grey.shade100,
+        child: SizedBox(
+          height: 60,
+          child: ElevatedButton(
+            onPressed: _isSaving ? null : _saveEvaluation,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 4),
+            child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text('Guardar Expediente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ) : null,
     );
   }
 }

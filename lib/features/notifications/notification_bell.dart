@@ -1,7 +1,6 @@
 import '../../features//notifications/notifications_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// IMPORTA AQUÍ TU notifications_screen.dart
 
 class NotificationBell extends StatelessWidget {
   final String userId;
@@ -11,7 +10,6 @@ class NotificationBell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      // Escuchamos SOLO las notificaciones que no han sido leídas
       stream: FirebaseFirestore.instance
           .collection('notifications')
           .where('receiverId', isEqualTo: userId)
@@ -27,9 +25,9 @@ class NotificationBell extends StatelessWidget {
           alignment: Alignment.center,
           children: [
             IconButton(
-              icon: const Icon(Icons.notifications),
+              // ¡LA SOLUCIÓN! Le ponemos el color blanco explícitamente
+              icon: const Icon(Icons.notifications, color: Colors.white),
               onPressed: () {
-                // Al tocar la campana, abrimos el buzón
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -38,7 +36,6 @@ class NotificationBell extends StatelessWidget {
                 );
               },
             ),
-            // Si hay mensajes sin leer, dibujamos el globito rojo
             if (unreadCount > 0)
               Positioned(
                 right: 8,
@@ -46,7 +43,7 @@ class NotificationBell extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
-                    color: Colors.red,
+                    color: Colors.redAccent, // Un rojo un poco más suave y premium
                     shape: BoxShape.circle,
                   ),
                   constraints: const BoxConstraints(

@@ -193,14 +193,14 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
                     decoration: BoxDecoration(
                       color: surfaceBg,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                     ),
                     child: Row(
                       children: [
                         // Badge de la Serie
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(color: Colors.teal.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                          decoration: BoxDecoration(color: Colors.teal.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
                           child: Text('${index + 1}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.tealAccent)),
                         ),
                         const SizedBox(width: 16),
