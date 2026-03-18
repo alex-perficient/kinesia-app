@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:kinesia_app/services/notification_service.dart';
+import 'exercise_config_dialog.dart'; // Importamos nuestro panel maestro
 
 class CreateRoutineScreen extends StatefulWidget {
   final String patientId;
@@ -18,179 +18,188 @@ class CreateRoutineScreen extends StatefulWidget {
 }
 
 class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
-  final TextEditingController _routineTitleController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
   
-  // Lista de controladores para los ejercicios dinámicos
-  final List<Map<String, TextEditingController>> _exercises = [];
+  // Lista dinámica para guardar los ejercicios antes de enviarlos a Firebase
+  final List<Map<String, dynamic>> _exercises = [];
+  bool _isLoading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _addExerciseField(); // Iniciar con un ejercicio vacío
-  }
+  // Llamamos al panel granular exactamente igual que en las plantillas
+  void _addNewExercise() async {
+    final newExerciseData = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => const ExerciseConfigDialog(),
+    );
 
-  // Función para añadir un nuevo bloque de ejercicio al formulario
-  void _addExerciseField() {
-    setState(() {
-      _exercises.add({
-        'title': TextEditingController(),
-        'url': TextEditingController(),
-        'sets': TextEditingController(),
-        'reps': TextEditingController(),
+    if (newExerciseData != null) {
+      setState(() {
+        _exercises.add({
+          'name': newExerciseData['title'], // Usamos 'name' por compatibilidad con tu BD
+          'youtubeUrl': newExerciseData['youtubeUrl'],
+          'sets': newExerciseData['sets'],
+          'reps': newExerciseData['reps'],
+          'askEVA': newExerciseData['askEVA'],
+          'askRIR': newExerciseData['askRPE'], // Mapeamos RPE a RIR para tu tracking
+          'askWeight': newExerciseData['askWeight'],
+        });
       });
-    });
+    }
   }
 
-  // Función para quitar un ejercicio de la lista
-  void _removeExerciseField(int index) {
-    setState(() {
-      _exercises.removeAt(index);
-    });
-  }
-
+  // Guardamos la rutina en la base de datos
   Future<void> _saveRoutine() async {
-    if (_routineTitleController.text.isEmpty || _exercises.isEmpty) {
+    if (_titleController.text.trim().isEmpty || _exercises.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, agrega un título y al menos un ejercicio.')),
+        const SnackBar(content: Text('Ponle un título y agrega al menos un ejercicio.')),
       );
       return;
     }
 
+    setState(() => _isLoading = true);
+
     try {
       final String physioId = FirebaseAuth.instance.currentUser!.uid;
 
-      // Transformamos los controladores en una lista de Mapas para Firestore
-      List<Map<String, dynamic>> exercisesData = _exercises.map((e) {
-        return {
-          'title': e['title']!.text.trim(),
-          'youtubeUrl': e['url']!.text.trim(),
-          'sets': int.tryParse(e['sets']!.text) ?? 0,
-          'reps': int.tryParse(e['reps']!.text) ?? 0,
-        };
-      }).toList();
-
-      // Guardamos la rutina en Firestore
       await FirebaseFirestore.instance.collection('routines').add({
-        'physioId': physioId,
         'patientId': widget.patientId,
-        'title': _routineTitleController.text.trim(),
-        'exercises': exercisesData,
+        'physioId': physioId,
+        'title': _titleController.text.trim(),
+        'exercises': _exercises,
+        'isActive': true, // Por defecto al crearla manual, entra activa
         'createdAt': FieldValue.serverTimestamp(),
-        'isActive': true,
       });
-
-      // NUEVO: Disparador de Notificación
-      await NotificationService.sendNotification(
-        receiverId: widget.patientId, // Asegúrate de que esta variable exista en tu pantalla
-        title: 'Nueva Rutina Asignada 🏋️',
-        body: 'Tu fisioterapeuta te ha enviado nuevos ejercicios para trabajar.',
-      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Rutina creada con éxito ✅')),
+          const SnackBar(content: Text('Rutina asignada exitosamente al paciente 🚀', style: TextStyle(color: Colors.white)), backgroundColor: Colors.teal),
         );
-        Navigator.pop(context);
+        Navigator.pop(context); // Regresamos a la pantalla anterior
       }
     } catch (e) {
       if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al guardar: $e')),
-      );
-    }}
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Nueva Rutina: ${widget.patientName}')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _routineTitleController,
+      appBar: AppBar(
+        title: Text('Nueva Rutina: ${widget.patientName}'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+      ),
+      body: Column(
+        children: [
+          // 1. Cabecera (Título)
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _titleController,
               decoration: const InputDecoration(
                 labelText: 'Título de la Rutina (ej. Post-Op Rodilla)',
                 border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.title),
               ),
-              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 24),
-            
-            // Lista dinámica de ejercicios
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _exercises.length,
-              itemBuilder: (context, index) {
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Ejercicio #${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _removeExerciseField(index),
-                            )
-                          ],
-                        ),
-                        TextField(
-                          controller: _exercises[index]['title'],
-                          decoration: const InputDecoration(labelText: 'Nombre del ejercicio'),
-                        ),
-                        TextField(
-                          controller: _exercises[index]['url'],
-                          decoration: const InputDecoration(labelText: 'URL de YouTube'),
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _exercises[index]['sets'],
-                                decoration: const InputDecoration(labelText: 'Series'),
-                                keyboardType: TextInputType.number,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: TextField(
-                                controller: _exercises[index]['reps'],
-                                decoration: const InputDecoration(labelText: 'Reps'),
-                                keyboardType: TextInputType.number,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+          ),
+
+          const Divider(thickness: 2),
+
+          // 2. Encabezado de la lista con el botón de agregar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Ejercicios', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                TextButton.icon(
+                  onPressed: _addNewExercise, // ¡CONECTADO AL NUEVO DIÁLOGO!
+                  icon: const Icon(Icons.add_circle, color: Colors.teal),
+                  label: const Text('Agregar', style: TextStyle(color: Colors.teal)),
+                ),
+              ],
+            ),
+          ),
+
+          // 3. Lista dinámica de ejercicios
+          Expanded(
+            child: _exercises.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Sin ejercicios.\nToca "Agregar" para usar el panel avanzado.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
                     ),
+                  )
+                : ListView.builder(
+                    itemCount: _exercises.length,
+                    itemBuilder: (context, index) {
+                      final exercise = _exercises[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.teal.shade50,
+                            child: Text('${index + 1}', style: const TextStyle(color: Colors.teal)),
+                          ),
+                          title: Text(exercise['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${exercise['sets']} series x ${exercise['reps']}'),
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 6,
+                                children: [
+                                  if (exercise['askEVA'] == true)
+                                    const Text('• Dolor', style: TextStyle(color: Colors.red, fontSize: 12)),
+                                  if (exercise['askRIR'] == true)
+                                    const Text('• Esfuerzo', style: TextStyle(color: Colors.orange, fontSize: 12)),
+                                  if (exercise['askWeight'] == true)
+                                    const Text('• Peso', style: TextStyle(color: Colors.blue, fontSize: 12)),
+                                ],
+                              ),
+                            ],
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            onPressed: () {
+                              setState(() => _exercises.removeAt(index));
+                            },
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+          ),
+        ],
+      ),
+
+      // 4. Botón inferior para guardar
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _saveRoutine,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            
-            TextButton.icon(
-              onPressed: _addExerciseField,
-              icon: const Icon(Icons.add),
-              label: const Text('Añadir otro ejercicio'),
-            ),
-            const SizedBox(height: 32),
-            
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _saveRoutine,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-                child: const Text('Guardar Rutina e Iniciar Rehabilitación'),
-              ),
-            ),
-          ],
+            child: _isLoading
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('Guardar Rutina e Iniciar Rehabilitación', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ),
         ),
       ),
     );

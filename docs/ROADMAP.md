@@ -78,8 +78,8 @@
 - [ ] **Notificación de Análisis:** Avisar al fisio mediante *push notification* únicamente cuando el resumen generado por la IA esté listo para su lectura.
 
 ## 📅 Épica 6: Control Clínico Avanzado (Dashboard)
-- [ ] **Calendario Mensual del Fisio:** Expandir la cinta horizontal a una vista de mes completo. Permitir programación de citas futuras y revisiones con indicadores visuales (código de colores) para días con eventos especiales.
-- [ ] **Línea de Tiempo Unificada:** Fusionar la captura de rutinas (`workout_logs`) y los reportes de bienestar emocional/físico (`daily_logs`) en una sola vista cronológica dentro del día seleccionado para dar contexto completo al fisio.
+- [x] **Calendario Mensual del Fisio:** Expandir la cinta horizontal a una vista de mes completo. Permitir programación de citas futuras y revisiones con indicadores visuales (código de colores) para días con eventos especiales.
+- [x] **Línea de Tiempo Unificada:** Fusionar la captura de rutinas (`workout_logs`) y los reportes de bienestar emocional/físico (`daily_logs`) en una sola vista cronológica dentro del día seleccionado para dar contexto completo al fisio.
 - [ ] **Métricas Granulares Dinámicas:** Extender la captura actual (EVA, RPE, Peso) a un modelo completamente "por ejercicio", soportando campos condicionales según el tipo de ejercicio (ej. RIR, tiempo bajo tensión, repeticiones efectivas vs. cardio).
 
 ## ✨ Épica 7: "Facelift" UI/UX y Retención (Capa Visual)

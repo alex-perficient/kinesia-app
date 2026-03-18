@@ -292,7 +292,7 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
       ],
     );
   }
-}
+
 
   // Dibuja una estrella para el confeti
   Path drawStar(Size size) {
@@ -312,4 +312,5 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
     }
     path.close();
     return path;
+  }
   }
