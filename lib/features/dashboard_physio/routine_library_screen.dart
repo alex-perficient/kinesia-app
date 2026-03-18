@@ -48,26 +48,50 @@ class RoutineLibraryScreen extends StatelessWidget {
 
           final templates = snapshot.data?.docs ?? [];
 
-          // ESTADO VACÍO: Cuando el fisio aún no tiene plantillas
+          // ESTADO VACÍO: Look "Nike Training" con fotografía inyectada
           if (templates.isEmpty) {
-            return Center(
+            return Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                // Inyectamos una foto profesional de Unsplash directo de la nube
+                image: DecorationImage(
+                  image: const NetworkImage('https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?q=80&w=2070&auto=format&fit=crop'), 
+                  fit: BoxFit.cover,
+                  // El truco mágico: Un cristal oscuro sobre la foto para que el texto sea legible
+                  colorFilter: ColorFilter.mode(Colors.black.withValues(alpha:0.65), BlendMode.darken), 
+                ),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(32.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.library_books_outlined, size: 80, color: Colors.teal.shade200),
+                    const Icon(Icons.fitness_center, size: 64, color: Colors.white),
                     const SizedBox(height: 24),
                     const Text(
-                      'Tu Biblioteca está vacía',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.teal),
+                      'Diseña el Éxito',
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1),
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Crea plantillas de rutinas estándar (ej. "Post-operatorio de Rodilla") para asignarlas rápidamente a múltiples pacientes en el futuro.',
+                      'Tu biblioteca está en blanco. Crea plantillas estándar de alto rendimiento para escalar tu impacto y asignarlas rápidamente.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
+                      style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
                     ),
+                    const SizedBox(height: 40),
+                    // Un botón blanco sólido que resalta sobre el fondo oscuro
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateTemplateScreen()));
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.teal.shade900,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      ),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Crear mi primera plantilla'),
+                    )
                   ],
                 ),
               ),

@@ -15,17 +15,31 @@ class _PatientDailyLogScreenState extends State<PatientDailyLogScreen> {
   final TextEditingController _notesController = TextEditingController();
   bool _isSaving = false;
 
+  // Helpers para los emojis dinámicos
+  String _getPainEmoji(double value) {
+    if (value == 0) return '💪'; // Cero dolor, fuerte
+    if (value <= 3) return '🙂'; // Ligera molestia
+    if (value <= 6) return '😕'; // Dolor moderado
+    if (value <= 8) return '😣'; // Dolor fuerte
+    return '😫'; // Inaguantable
+  }
+
+  String _getEnergyEmoji(double value) {
+    if (value <= 3) return '⚡'; // 1-3: Mucha energía
+    if (value <= 6) return '🔋'; // 4-6: Batería normal
+    if (value <= 8) return '🪫'; // 7-8: Batería baja
+    return '🛌'; // 9-10: Exhausto
+  }
+
   Future<void> _saveDailyLog() async {
     setState(() => _isSaving = true);
 
     try {
       final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
       
-      // 1. Buscamos el ID del fisio para que este registro aparezca en su Torre de Control
       final patientDoc = await FirebaseFirestore.instance.collection('patients').doc(currentUserId).get();
       final String physioId = patientDoc.data()?['physioId'] ?? '';
 
-      // 2. Guardamos en una nueva colección maestra
       await FirebaseFirestore.instance.collection('daily_logs').add({
         'patientId': currentUserId,
         'physioId': physioId,
@@ -38,11 +52,12 @@ class _PatientDailyLogScreenState extends State<PatientDailyLogScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Bitácora registrada. ¡Gracias por actualizar tu estado!'),
+            content: Text('¡Excelente! Registro completado.', style: TextStyle(fontWeight: FontWeight.bold)),
             backgroundColor: Colors.teal,
+            behavior: SnackBarBehavior.floating, // Estilo Premium flotante
           )
         );
-        Navigator.pop(context); // Regresamos al Home
+        Navigator.pop(context); 
       }
     } catch (e) {
       if (mounted) {
@@ -63,87 +78,141 @@ class _PatientDailyLogScreenState extends State<PatientDailyLogScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('¿Cómo te sientes hoy?'),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
+        title: const Text('Check-in Diario'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // CABECERA MOTIVACIONAL
             const Text(
-              'Tu bienestar es prioridad',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.teal),
+              'Escucha a tu cuerpo',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Registra tu estado actual para que tu fisioterapeuta pueda monitorear tu evolución general.',
-              style: TextStyle(fontSize: 15, color: Colors.grey),
+              'Un buen atleta sabe cuándo empujar y cuándo descansar. ¿Cómo te sientes hoy?',
+              style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.4),
             ),
             const SizedBox(height: 32),
 
-            // ESCALA DE DOLOR GENERAL
-            const Text('Dolor General (Cuerpo completo)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Slider(
-              value: _painLevel,
-              min: 0,
-              max: 10,
-              divisions: 10,
-              activeColor: _painLevel > 6 ? Colors.red : (_painLevel > 3 ? Colors.orange : Colors.green),
-              label: _painLevel.round().toString(),
-              onChanged: (val) => setState(() => _painLevel = val),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [Text('0 (Sin dolor)'), Text('10 (Insoportable)')],
-            ),
-            const SizedBox(height: 32),
-
-            // ESCALA DE FATIGA / ENERGÍA
-            const Text('Nivel de Cansancio / Fatiga', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Slider(
-              value: _fatigueLevel,
-              min: 1,
-              max: 10,
-              divisions: 9,
-              activeColor: Colors.blue.shade400,
-              label: _fatigueLevel.round().toString(),
-              onChanged: (val) => setState(() => _fatigueLevel = val),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [Text('1 (Mucha Energía)'), Text('10 (Exhausto)')],
-            ),
-            const SizedBox(height: 32),
-
-            // NOTAS LIBRES
-            const Text('Notas adicionales (Opcional)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _notesController,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: 'Ej. Me dolió la espalda al despertar, dormí mal, me siento excelente hoy...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                filled: true,
-                fillColor: Colors.grey.shade50,
+            // TARJETA 1: DOLOR FÍSICO
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  children: [
+                    Text(_getPainEmoji(_painLevel), style: const TextStyle(fontSize: 64)),
+                    const SizedBox(height: 16),
+                    const Text('Nivel de Dolor', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text(
+                      _painLevel == 0 ? 'Sin molestias físicas' : 'Nivel ${_painLevel.toInt()}',
+                      style: TextStyle(fontSize: 16, color: _painLevel > 6 ? Colors.red : Colors.teal),
+                    ),
+                    const SizedBox(height: 16),
+                    Slider(
+                      value: _painLevel,
+                      min: 0,
+                      max: 10,
+                      divisions: 10,
+                      activeColor: _painLevel > 6 ? Colors.red : (_painLevel > 3 ? Colors.orange : Colors.teal),
+                      onChanged: (val) => setState(() => _painLevel = val),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text('Nada', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)), 
+                        Text('Insoportable', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
+
+            // TARJETA 2: ENERGÍA (Antes "Fatiga")
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  children: [
+                    Text(_getEnergyEmoji(_fatigueLevel), style: const TextStyle(fontSize: 64)),
+                    const SizedBox(height: 16),
+                    const Text('Nivel de Energía', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Impacto: ${_fatigueLevel.toInt()}',
+                      style: TextStyle(fontSize: 16, color: _fatigueLevel > 7 ? Colors.red : Colors.blue),
+                    ),
+                    const SizedBox(height: 16),
+                    Slider(
+                      value: _fatigueLevel,
+                      min: 1,
+                      max: 10,
+                      divisions: 9,
+                      activeColor: Colors.blue,
+                      onChanged: (val) => setState(() => _fatigueLevel = val),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text('Al máximo', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)), 
+                        Text('Exhausto', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // TARJETA 3: DIARIO (Notas)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.book, color: Colors.teal),
+                        SizedBox(width: 8),
+                        Text('Diario de Recuperación', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _notesController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        hintText: 'Ej. Dormí excelente, pero siento la rodilla un poco rígida al caminar...',
+                        border: InputBorder.none, // Quitamos el borde duro para que parezca una libreta
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
 
             // BOTÓN DE GUARDAR
             SizedBox(
-              height: 55,
+              width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _isSaving ? null : _saveDailyLog,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-                icon: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Icon(Icons.send),
-                label: const Text('Enviar Reporte', style: TextStyle(fontSize: 18)),
+                icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.check_circle),
+                label: _isSaving 
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('Completar Check-in'),
               ),
             ),
+            const SizedBox(height: 24),
           ],
         ),
       ),

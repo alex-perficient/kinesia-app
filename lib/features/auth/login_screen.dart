@@ -72,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               // Logo o Título de Kines.ia
               const Text(
-                'Kines.ia',
+                'KinesIA',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.teal),
               ),
@@ -119,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // Botón de Entrar
               SizedBox(
-                height: 50,
+                width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _signIn,
                   style: ElevatedButton.styleFrom(

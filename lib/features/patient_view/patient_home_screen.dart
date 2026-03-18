@@ -10,15 +10,15 @@ class PatientHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Obtenemos el ID del paciente que inició sesión
     final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
 
     return Scaffold(
+      // 1. EL TRUCO MAGICO: Permite que el contenido suba hasta atrás de la barra de estado
+      extendBodyBehindAppBar: true, 
       appBar: AppBar(
-        title: const Text('Mi Rehabilitación', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent, // Barra transparente
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white), // Íconos blancos para resaltar sobre la foto
         actions: [
           NotificationBell(userId: currentUserId),
           IconButton(
@@ -28,7 +28,6 @@ class PatientHomeScreen extends StatelessWidget {
           )
         ],
       ),
-      // LA MAGIA ARQUITECTÓNICA: Leemos el perfil del paciente primero
       body: FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance.collection('patients').doc(currentUserId).get(),
         builder: (context, userSnapshot) {
@@ -36,151 +35,170 @@ class PatientHomeScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator(color: Colors.teal));
           }
 
-          // Extraemos el nombre real de Firestore
-          String patientName = 'Paciente';
+          String patientName = 'Atleta';
           if (userSnapshot.hasData && userSnapshot.data!.exists) {
             final data = userSnapshot.data!.data() as Map<String, dynamic>;
-            patientName = data['fullName'] ?? 'Paciente';
+            // Tomamos solo el primer nombre para un saludo más personal y fuerte
+            patientName = (data['fullName'] ?? 'Atleta').split(' ')[0]; 
           }
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          // 2. STACK: Capas superpuestas (Foto al fondo, contenido al frente)
+          return Stack(
             children: [
-              // Saludo superior (¡Ahora personalizado con el nombre!)
+              // --- CAPA 1: EL HERO HEADER (Fondo) ---
               Container(
-                padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
-                  color: Colors.teal,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30),
+                height: MediaQuery.of(context).size.height * 0.45, // Ocupa el 45% de la pantalla
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    // Fotografía de alto rendimiento (atleta amarrándose las agujetas)
+                    image: const NetworkImage('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop'),
+                    fit: BoxFit.cover,
+                    // Filtro oscuro para que el texto blanco sea súper legible
+                    colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.6), BlendMode.darken),
                   ),
                 ),
-                child: Text(
-                  '¡Hola $patientName!\nEs hora de tu recuperación.',
-                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                ),
               ),
-              const SizedBox(height: 24),
 
-              // Buscamos TODAS las rutinas activas del paciente
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('routines')
-                      .where('patientId', isEqualTo: currentUserId)
-                      .where('isActive', isEqualTo: true)
-                      // .limit(1) <--- ¡ELIMINADO!
-                      .snapshots(),
-                  builder: (context, routineSnapshot) {
-                    if (routineSnapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (routineSnapshot.hasError) {
-                      return const Center(child: Text('Error al cargar tu rutina.'));
-                    }
-
-                    final docs = routineSnapshot.data?.docs ?? [];
-
-                    if (docs.isEmpty) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32.0),
-                          child: Text(
-                            'No tienes ninguna rutina activa en este momento.\n\nTu fisioterapeuta te asignará una pronto.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
+              // --- CAPA 2: EL CONTENIDO (Frente) ---
+              SafeArea(
+                bottom: false,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // SALUDO MOTIVACIONAL
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'HOLA, ${patientName.toUpperCase()}', 
+                            style: const TextStyle(color: Colors.tealAccent, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.5),
                           ),
-                        ),
-                      );
-                    }
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Tu momento\nes ahora.',
+                            style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900, height: 1.1, letterSpacing: -1),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
-                    // AHORA USAMOS UN LISTVIEW PARA SOPORTAR MÚLTIPLES TARJETAS
-                    return ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      children: [
-                        const Text(
-                          'Tus planes activos',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Generamos una tarjeta por cada rutina activa
-                        ...docs.map((routineDoc) {
-                          final routineData = routineDoc.data() as Map<String, dynamic>;
-                          final routineId = routineDoc.id;
-                          final String title = routineData['title'] ?? 'Mi Rutina';
-                          final List exercises = routineData['exercises'] ?? [];
+                    // LISTA DE RUTINAS FLOTANTE
+                    Expanded(
+                      child: StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('routines')
+                            .where('patientId', isEqualTo: currentUserId)
+                            .where('isActive', isEqualTo: true)
+                            .snapshots(),
+                        builder: (context, routineSnapshot) {
+                          if (routineSnapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator(color: Colors.white));
+                          }
 
-                          return Card(
-                            elevation: 4,
-                            margin: const EdgeInsets.only(bottom: 16), // Espacio entre tarjetas
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Column(
-                                children: [
-                                  Icon(Icons.fitness_center, size: 48, color: Colors.teal.shade300),
-                                  const SizedBox(height: 16),
-                                  Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                                  const SizedBox(height: 8),
-                                  Text('${exercises.length} ejercicios asignados', style: const TextStyle(color: Colors.grey)),
-                                  const SizedBox(height: 24),
-                                  
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 50,
-                                    child: ElevatedButton.icon(
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => PatientRoutineScreen(
-                                              routineId: routineId, 
-                                              patientName: patientName, 
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.teal,
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                                      ),
-                                      icon: const Icon(Icons.play_circle_fill),
-                                      label: const Text('Comenzar Ejercicios', style: TextStyle(fontSize: 18)),
+                          final docs = routineSnapshot.data?.docs ?? [];
+
+                          return ListView(
+                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                            children: [
+                              // Si no hay rutinas, mostramos una tarjeta de "Descanso"
+                              if (docs.isEmpty)
+                                Card(
+                                  color: Colors.white.withValues(alpha: 0.95), // Ligeramente translúcida
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(32.0),
+                                    child: Column(
+                                      children: [
+                                        Icon(Icons.bedtime_outlined, size: 48, color: Colors.teal),
+                                        SizedBox(height: 16),
+                                        Text('Día de Recuperación', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                                        SizedBox(height: 8),
+                                        Text('No tienes rutinas activas hoy. Aprovecha para descansar o espera las indicaciones de tu fisioterapeuta.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+                                      ],
                                     ),
                                   ),
-                                ],
+                                ),
+
+                              // Tarjetas de Rutinas
+                              ...docs.map((routineDoc) {
+                                final routineData = routineDoc.data() as Map<String, dynamic>;
+                                final String title = routineData['title'] ?? 'Mi Rutina';
+                                final List exercises = routineData['exercises'] ?? [];
+
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Icon(Icons.local_fire_department, color: Colors.deepOrange),
+                                            Text('${exercises.length} ejercicios', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+                                        const SizedBox(height: 24),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.push(context, MaterialPageRoute(builder: (context) => PatientRoutineScreen(routineId: routineDoc.id, patientName: patientName)));
+                                            },
+                                            child: const Text('Comenzar Entrenamiento'),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }),
+
+                              const SizedBox(height: 16),
+
+                              // LA BITÁCORA DE BIENESTAR (Diseño Premium)
+                              Card(
+                                color: const Color(0xFF0F172A), // Slate Dark
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Bitácora Diaria', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                                      const SizedBox(height: 8),
+                                      const Text('Ayuda a tu fisio a entender cómo responde tu cuerpo al tratamiento.', style: TextStyle(color: Colors.white70)),
+                                      const SizedBox(height: 24),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: OutlinedButton.icon(
+                                          onPressed: () {
+                                            Navigator.push(context, MaterialPageRoute(builder: (context) => const PatientDailyLogScreen()));
+                                          },
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: Colors.white,
+                                            side: const BorderSide(color: Colors.white24, width: 2),
+                                          ),
+                                          icon: const Icon(Icons.mood),
+                                          label: const Text('Registrar Bienestar'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 40), // Espacio final
+                            ],
                           );
-                        }), // Fin del mapeo de tarjetas
-                        
-                        const SizedBox(height: 16),
-                        
-                        // El botón de la bitácora se queda al final de la lista
-                        // El botón de la bitácora
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            // ¡LA NAVEGACIÓN REAL!
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const PatientDailyLogScreen()),
-                            );
-                          },
-                          icon: const Icon(Icons.edit_note),
-                          label: const Text('Registrar cómo me siento hoy'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.all(16),
-                            foregroundColor: Colors.teal,
-                          ),
-                        ),
-                        const SizedBox(height: 32), // Espacio extra al final para que no pegue con el borde
-                      ],
-                    );
-                  },
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
