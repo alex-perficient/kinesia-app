@@ -17,7 +17,7 @@
 
 ## 🚧 Fase 6.2: Modelo de Negocio
 - [x] Reglas de control de uso de IA (Contador en Firebase)
-- [ ] Bloqueos y pantallas Freemium vs Premium *Revisar si manda los whatsapps y empezar a subirlo a Playstore*
+- [x] Bloqueos y pantallas Freemium vs Premium *Revisar si manda los whatsapps y empezar a subirlo a Playstore*
 
 ## 🎨 Fase 7: UI/UX y Retención
 - [x] Estados vacíos (Empty States) ilustrados
@@ -54,9 +54,9 @@
 
 ### 🧠 Épica 2: Evolución del Modelo de Datos (Core)
 *Prioridad: ALTA | Status: Pendiente (Requiere migración de base de datos)*
-- [ ] **2.1 Flexibilidad de Días:** Reemplazar el esquema rígido de días de la semana (Lunes, Martes) por "Día 1, Día 2, etc.".
+- [x] **2.1 Flexibilidad de Días:** Reemplazar el esquema rígido de días de la semana (Lunes, Martes) por "Día 1, Día 2, etc.".
 - [ ] **2.2 Tracking de Adherencia:** Implementar pop-up de seguimiento si el paciente salta un día en el orden establecido, requiriendo justificación.
-- [ ] **2.3 Métricas Granulares por Ejercicio:** Mover las escalas (EVA, RPE, RIR) y parámetros (tiempo, peso, reps) de un modelo "por rutina" a un modelo "por ejercicio", soportando variables dinámicas (fuerza vs cardio).
+- [x] **2.3 Métricas Granulares por Ejercicio:** Mover las escalas (EVA, RPE, RIR) y parámetros (tiempo, peso, reps) de un modelo "por rutina" a un modelo "por ejercicio", soportando variables dinámicas (fuerza vs cardio).
 
 ### 🚀 Épica 3: Nuevos Módulos Mayores (Features Premium)
 *Prioridad: MEDIA | Status: Pendiente*
@@ -83,8 +83,8 @@
 - [ ] **Métricas Granulares Dinámicas:** Extender la captura actual (EVA, RPE, Peso) a un modelo completamente "por ejercicio", soportando campos condicionales según el tipo de ejercicio (ej. RIR, tiempo bajo tensión, repeticiones efectivas vs. cardio).
 
 ## ✨ Épica 7: "Facelift" UI/UX y Retención (Capa Visual)
-- [ ] **Pulido de Interfaz Profesional:** Homologar radios de bordes, sombras, paleta cromática de la marca y estados vacíos (empty states) con ilustraciones para garantizar una experiencia de usuario *Premium*.
-- [ ] **Soporte Multimedia Libre:** Asegurar que el fisio pueda enviar fácilmente links de YouTube sugeridos o cargar sus propios videos explicativos.
+- [x] **Pulido de Interfaz Profesional:** Homologar radios de bordes, sombras, paleta cromática de la marca y estados vacíos (empty states) con ilustraciones para garantizar una experiencia de usuario *Premium*.
+- [x] **Soporte Multimedia Libre:** Asegurar que el fisio pueda enviar fácilmente links de YouTube sugeridos o cargar sus propios videos explicativos.
 - [ ] **Gamificación (Low Priority):** Sistema de rachas o recompensas visuales para pacientes con alta adherencia al tratamiento.
 
 
@@ -110,7 +110,47 @@
 *Estas son características de alto impacto que se desarrollarán a mediano/largo plazo para escalar Kines.ia.*
 
 - [ ] **Analítica con IA (Reportes de Evolución):** Prompt para que Gemini lea el historial de un paciente de los últimos 2 meses y redacte un resumen médico de evolución (Ideal para entregar a médicos traumatólogos).
-- [ ] **Plantillas de Rutinas:** Guardar rutinas pre-armadas (ej. "Esguince de Tobillo Fase 1") para asignarlas con un clic a múltiples pacientes.
+- [x] **Plantillas de Rutinas:** Guardar rutinas pre-armadas (ej. "Esguince de Tobillo Fase 1") para asignarlas con un clic a múltiples pacientes.
 - [ ] **Corrección de Técnica (Video Asíncrono):** Permitir al paciente grabarse 10 segundos haciendo un ejercicio y subirlo para que el Fisio corrija su postura desde la app.
 - [ ] **Catálogo de Videos Propios:** Permitir al Fisio enlazar sus propios videos de YouTube o subir videos cortos para sustituir las animaciones genéricas de los ejercicios.
 - [ ] **Integración de Hardware (Wearables):** A largo plazo, conectar la app con Apple Health o Google Fit para medir actividad diaria pasiva del paciente.
+
+
+
+
+# Feedback de Testers
+Análisis del Feedback y Plan de Ataque (Backlog)
+Tus testers acaban de darte la hoja de ruta exacta para escalar tu software y expandir el paraguas de Mon TI Labs. Aquí tienes el Backlog organizado por prioridades para que mantengamos el enfoque.
+
+📦 **SPRINT 1: Victorias Rápidas (Lo que podemos atacar hoy/mañana)**
+Estas son fricciones visuales y operativas que resolvemos rápido y dan mucho valor.
+
+1. **Optimización del Dashboard (UI/UX):** 
+- [x] Reducir el tamaño de la cabecera Dark Slate en celulares para que la lista de pacientes ocupe el 70% de la pantalla. Haremos las tarjetas de pacientes más compactas. 
+
+2. **Semáforo Clínico (Retención B2B):** 
+- [x] Conectar la lógica para que los dolores altos disparen alertas en la campanita del fisio.
+
+3. **Formularios Dinámicos en Evaluación Asistida:** 
+- [x] Rediseñar la pantalla para que el fisio capture datos demográficos primero, y agregar un botón de "+ Agregar Campo Personalizado" (ej. Alergias, Dieta) igual que como agregan ejercicios a una rutina.
+
+4. **Racha Diaria (Gamificación B2C):** 
+- [x] Un simple contador numérico en la vista del paciente que premie la constancia.
+
+🚀 **SPRINT 2: Expansión de Valor (Próxima semana)**
+Estas tareas requieren crear nuevas colecciones en Firebase y rediseñar flujos.
+
+5. **El Banco Maestro de Ejercicios:** 
+- [x] Dividir la biblioteca en dos pestañas: "Mis Ejercicios Personalizados" y "Banco Kines.ia" (una base de datos global pre-cargada y agrupada por músculo/máquina).
+
+6. **El Perfil Profesional vs. Usuario:** 
+- [x] Terminar la pantalla de "Construcción". Aquí crearemos un switch (modo Dios) para que el especialista alterne entre su vista de "Clínica" (para trabajar) y su vista de "Paciente" (para hacer sus propias rutinas). Además, generaremos una "Tarjeta de Presentación Digital" pública para que consigan clientes.
+
+🎯 **SPRINT 3: Nuevas Verticales y Monetización High-Ticket (Futuro)**
+Esto es expansión de negocio pura.
+
+7. **Módulo de Nutrición y Tracking GPS:** 
+- [ ] Abrir el sistema para nutriólogos. Para la parte de registrar rutas al salir a correr, será ideal aprovechar la arquitectura y la infraestructura de geolocalización que ya estás desarrollando para Gula Maps. Podemos integrar esos módulos para que convivan en el mismo ecosistema.
+
+8. **Marca Blanca (White-Labeling):** 
+- [ ] El modelo de negocio definitivo. Un fisio te paga $500 - $1,000 USD mensuales o un setup fee alto. Tú clonas el código, cambias los colores, pones su logo, y le compilas su propia app en la App Store bajo la infraestructura de Mon TI Labs. Es un servicio "Premium VIP" que no requiere programar la app de cero, solo cambiar variables de entorno.

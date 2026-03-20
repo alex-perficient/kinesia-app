@@ -74,6 +74,48 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
     }
   }
 
+  // EL MOTOR LÓGICO DE GAMIFICACIÓN
+  Future<void> _updatePatientStreakAndCheckAlerts(bool askEVA, String exerciseName) async {
+    final patientRef = FirebaseFirestore.instance.collection('patients').doc(currentUserId);
+    final patientDoc = await patientRef.get();
+    
+    if (patientDoc.exists) {
+      final data = patientDoc.data() as Map<String, dynamic>;
+      int streak = data['streakCount'] ?? 0;
+      Timestamp? lastDate = data['lastActivityDate'];
+
+      final now = DateTime.now();
+      if (lastDate != null) {
+        final last = lastDate.toDate();
+        // Calculamos la diferencia en días naturales (ignorando la hora)
+        final difference = DateTime(now.year, now.month, now.day).difference(DateTime(last.year, last.month, last.day)).inDays;
+
+        if (difference == 1) {
+          streak += 1; // Entrenó ayer y hoy = suma racha
+        } else if (difference > 1) {
+          streak = 1; // Pasó más de un día = pierde la racha
+        }
+        // Si difference == 0, significa que ya había entrenado hoy, la racha se mantiene igual.
+      } else {
+        streak = 1; // Su primer entrenamiento
+      }
+
+      await patientRef.update({
+        'streakCount': streak,
+        'lastActivityDate': FieldValue.serverTimestamp(),
+      });
+
+      // SEMÁFORO CLÍNICO 🚨
+      if (_physioId != null && askEVA && _evaValue >= 7) {
+        await NotificationService.sendNotification(
+          receiverId: _physioId!,
+          title: '🚨 Alerta de Dolor Alto',
+          body: '${widget.patientName} reportó un nivel de dolor de ${_evaValue.toInt()} en el ejercicio: $exerciseName. Sugerimos revisar su caso.',
+        );
+      }
+    }
+  }
+
   Future<void> _saveWorkoutLog() async {
     setState(() => _isSaving = true);
 
@@ -81,6 +123,7 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
       final bool askEVA = widget.exercise['askEVA'] ?? false;
       final bool askRIR = widget.exercise['askRIR'] ?? false;
       final bool askWeight = widget.exercise['askWeight'] ?? false;
+      final String exerciseName = widget.exercise['title'] ?? widget.exercise['name'];
 
       List<Map<String, dynamic>> completedSets = [];
       for (var controllers in _setsControllers) {
@@ -94,7 +137,7 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
         'patientId': currentUserId,
         'physioId': _physioId,
         'routineId': widget.routineId,
-        'exerciseName': widget.exercise['title'] ?? widget.exercise['name'],
+        'exerciseName': exerciseName,
         'date': FieldValue.serverTimestamp(),
         'sets': completedSets,
         'rpe': askRIR ? _rpeValue.toInt() : null,
@@ -103,11 +146,14 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
 
       await FirebaseFirestore.instance.collection('workout_logs').add(logData);
 
+      // Ejecutamos nuestro motor de gamificación y semáforo
+      await _updatePatientStreakAndCheckAlerts(askEVA, exerciseName);
+
       if (_physioId != null) {
         await NotificationService.sendNotification(
           receiverId: _physioId!,
           title: 'Avance de ${widget.patientName} 💪',
-          body: '${widget.patientName} ha completado: ${widget.exercise['title'] ?? widget.exercise['name']}.',
+          body: '${widget.patientName} ha completado: $exerciseName.',
         );
       }
 
@@ -118,7 +164,7 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('¡Excelente esfuerzo! 🔥 Un paso más cerca de tu meta.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-            backgroundColor: Color(0xFF0D9488), // Teal premium
+            backgroundColor: Color(0xFF0D9488), 
             duration: Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
           ),
@@ -129,9 +175,7 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -158,14 +202,13 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
     final bool askWeight = widget.exercise['askWeight'] ?? false;
     final String exerciseName = widget.exercise['title'] ?? widget.exercise['name'] ?? 'Registro';
 
-    // Colores Dark Mode Premium
     const Color darkBg = Color(0xFF0F172A);
     const Color surfaceBg = Color(0xFF1E293B);
 
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: darkBg, // FONDO OSCURO INMERSIVO
+          backgroundColor: darkBg, 
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -178,26 +221,16 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // TÍTULO DEL EJERCICIO GIGANTE
-                Text(
-                  exerciseName.toUpperCase(),
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1, letterSpacing: -1),
-                ),
+                Text(exerciseName.toUpperCase(), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1, letterSpacing: -1)),
                 const SizedBox(height: 32),
 
-                // FILAS DINÁMICAS DE LAS SERIES (Cajas Oscuras Elegantes)
                 ...List.generate(_setsControllers.length, (index) {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 16.0),
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: surfaceBg,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                    ),
+                    decoration: BoxDecoration(color: surfaceBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
                     child: Row(
                       children: [
-                        // Badge de la Serie
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(color: Colors.teal.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
@@ -205,7 +238,6 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
                         ),
                         const SizedBox(width: 16),
                         
-                        // Input de Repeticiones
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,18 +249,12 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
                                 keyboardType: TextInputType.number,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.black26,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
+                                decoration: InputDecoration(filled: true, fillColor: Colors.black26, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(vertical: 12)),
                               ),
                             ],
                           ),
                         ),
                         
-                        // Input de Peso (Solo si el fisio lo pidió)
                         if (askWeight) ...[
                           const SizedBox(width: 16),
                           Expanded(
@@ -242,14 +268,7 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
                                   keyboardType: TextInputType.number,
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: Colors.black26,
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                                    hintText: '0',
-                                    hintStyle: const TextStyle(color: Colors.white24),
-                                  ),
+                                  decoration: InputDecoration(filled: true, fillColor: Colors.black26, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(vertical: 12), hintText: '0', hintStyle: const TextStyle(color: Colors.white24)),
                                 ),
                               ],
                             ),
@@ -262,7 +281,6 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
 
                 const SizedBox(height: 24),
 
-                // MAGIA GRANULAR: RPE Y EVA EN TARJETAS OSCURAS
                 if (askRIR || askEVA) const Divider(color: Colors.white12, thickness: 2, height: 48),
 
                 if (askRIR) ...[
@@ -271,27 +289,11 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
                     decoration: BoxDecoration(color: surfaceBg, borderRadius: BorderRadius.circular(20)),
                     child: Column(
                       children: [
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Esfuerzo Percibido', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                            Icon(Icons.local_fire_department, color: Colors.orangeAccent),
-                          ],
-                        ),
+                        const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Esfuerzo Percibido', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)), Icon(Icons.local_fire_department, color: Colors.orangeAccent)]),
                         const SizedBox(height: 16),
                         Text(_rpeValue.toInt().toString(), style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: Colors.orangeAccent)),
-                        Slider(
-                          value: _rpeValue, min: 1, max: 10, divisions: 9,
-                          activeColor: Colors.orangeAccent, inactiveColor: Colors.black26,
-                          onChanged: (val) => setState(() => _rpeValue = val),
-                        ),
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('1 (Ligero)', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)), 
-                            Text('10 (Al Fallo)', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold))
-                          ],
-                        ),
+                        Slider(value: _rpeValue, min: 1, max: 10, divisions: 9, activeColor: Colors.orangeAccent, inactiveColor: Colors.black26, onChanged: (val) => setState(() => _rpeValue = val)),
+                        const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('1 (Ligero)', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)), Text('10 (Al Fallo)', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold))]),
                       ],
                     ),
                   ),
@@ -304,47 +306,23 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
                     decoration: BoxDecoration(color: surfaceBg, borderRadius: BorderRadius.circular(20)),
                     child: Column(
                       children: [
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Escala de Dolor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                            Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-                          ],
-                        ),
+                        const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Escala de Dolor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)), Icon(Icons.warning_amber_rounded, color: Colors.redAccent)]),
                         const SizedBox(height: 16),
                         Text(_evaValue.toInt().toString(), style: TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: _evaValue > 5 ? Colors.redAccent : Colors.tealAccent)),
-                        Slider(
-                          value: _evaValue, min: 0, max: 10, divisions: 10,
-                          activeColor: _evaValue > 5 ? Colors.redAccent : Colors.tealAccent, inactiveColor: Colors.black26,
-                          onChanged: (val) => setState(() => _evaValue = val),
-                        ),
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('0 (Nada)', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)), 
-                            Text('10 (Peor Dolor)', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold))
-                          ],
-                        ),
+                        Slider(value: _evaValue, min: 0, max: 10, divisions: 10, activeColor: _evaValue >= 7 ? Colors.redAccent : Colors.tealAccent, inactiveColor: Colors.black26, onChanged: (val) => setState(() => _evaValue = val)),
+                        const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('0 (Nada)', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)), Text('10 (Peor Dolor)', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold))]),
                       ],
                     ),
                   ),
                   const SizedBox(height: 32),
                 ],
 
-                // BOTÓN DE COMPLETAR EJERCICIO GIGANTE
                 SizedBox(
-                  height: 65, // Más alto para que sea fácil de tocar
+                  height: 65, 
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _saveWorkoutLog,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.tealAccent.shade400,
-                      foregroundColor: darkBg,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      elevation: 0,
-                    ),
-                    child: _isSaving 
-                        ? const CircularProgressIndicator(color: Color(0xFF0F172A)) 
-                        : const Text('COMPLETAR EJERCICIO', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.tealAccent.shade400, foregroundColor: darkBg, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 0),
+                    child: _isSaving ? const CircularProgressIndicator(color: Color(0xFF0F172A)) : const Text('COMPLETAR EJERCICIO', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1)),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -353,7 +331,6 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
           ),
         ),
         
-        // ¡TU CONFETI INTACTO, SOBRE EL FONDO OSCURO SE VERÁ BRUTAL!
         Align(
           alignment: Alignment.topCenter,
           child: ConfettiWidget(
@@ -368,7 +345,6 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
     );
   }
 
-  // Dibuja una estrella para el confeti
   Path drawStar(Size size) {
     double degToRad(double deg) => deg * (pi / 180.0);
     const numberOfPoints = 5;

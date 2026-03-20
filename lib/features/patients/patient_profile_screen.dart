@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'create_routine_screen.dart'; 
 import 'physio_routine_detail_screen.dart';
-//import 'clinical_evaluation_screen.dart';
 import 'clinical_history_list_screen.dart';
 import 'select_template_screen.dart';
 import 'patient_logs_history_screen.dart';
+import '../patient_view/patient_diet_screen.dart';
+import 'create_diet_screen.dart'; // Agrega esta línea
 
 class PatientProfileScreen extends StatefulWidget {
   final String patientId;
@@ -21,6 +22,7 @@ class PatientProfileScreen extends StatefulWidget {
   State<PatientProfileScreen> createState() => _PatientProfileScreenState();
 }
 
+// Cambiamos a 3 pestañas
 class _PatientProfileScreenState extends State<PatientProfileScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late Stream<QuerySnapshot> _routinesStream;
@@ -30,7 +32,8 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> with Single
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    // AHORA SON 3 TABS
+    _tabController = TabController(length: 3, vsync: this);
 
     _routinesStream = FirebaseFirestore.instance.collection('routines').where('patientId', isEqualTo: widget.patientId).where('isActive', isEqualTo: true).snapshots();
     _workoutLogsStream = FirebaseFirestore.instance.collection('workout_logs').where('patientId', isEqualTo: widget.patientId).orderBy('date', descending: true).snapshots();
@@ -60,17 +63,23 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> with Single
           indicatorColor: Colors.tealAccent,
           labelColor: Colors.tealAccent,
           unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
-          tabs: const [Tab(text: 'RUTINAS ACTIVAS'), Tab(text: 'HISTORIAL CLÍNICO')],
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5, fontSize: 12),
+          // NUEVAS PESTAÑAS
+          tabs: const [Tab(text: 'RUTINAS'), Tab(text: 'NUTRICIÓN'), Tab(text: 'HISTORIAL')],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildRoutinesTab(darkSlate), _buildHistoryTab(darkSlate)],
+        children: [
+          _buildRoutinesTab(darkSlate), 
+          _buildNutritionTab(darkSlate), // NUEVA PESTAÑA
+          _buildHistoryTab(darkSlate)
+        ],
       ),
     );
   }
 
+  // --- PESTAÑA 1: RUTINAS ---
   Widget _buildRoutinesTab(Color darkSlate) {
     return Column(
       children: [
@@ -79,9 +88,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> with Single
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SelectTemplateScreen(patientId: widget.patientId, patientName: widget.patientName))), icon: const Icon(Icons.library_books, size: 18), label: const Text('Usar Plantilla'), style: OutlinedButton.styleFrom(foregroundColor: darkSlate, side: BorderSide(color: Colors.grey.shade300)))),
+              Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SelectTemplateScreen(patientId: widget.patientId, patientName: widget.patientName))), icon: const Icon(Icons.library_books, size: 16), label: const Text('Plantilla', style: TextStyle(fontSize: 13)), style: OutlinedButton.styleFrom(foregroundColor: darkSlate, side: BorderSide(color: Colors.grey.shade300)))),
               const SizedBox(width: 12),
-              Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => CreateRoutineScreen(patientId: widget.patientId, patientName: widget.patientName))), icon: const Icon(Icons.edit, size: 18), label: const Text('Crear Manual'), style: OutlinedButton.styleFrom(foregroundColor: Colors.teal.shade700, side: BorderSide(color: Colors.teal.shade100)))),
+              Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => CreateRoutineScreen(patientId: widget.patientId, patientName: widget.patientName))), icon: const Icon(Icons.edit, size: 16), label: const Text('Manual', style: TextStyle(fontSize: 13)), style: OutlinedButton.styleFrom(foregroundColor: Colors.teal.shade700, side: BorderSide(color: Colors.teal.shade100)))),
             ],
           ),
         ),
@@ -119,10 +128,54 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> with Single
     );
   }
 
+  // --- PESTAÑA 2: NUTRICIÓN (NUEVA) ---
+  Widget _buildNutritionTab(Color darkSlate) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: Colors.green.shade50, shape: BoxShape.circle), child: const Icon(Icons.restaurant, size: 64, color: Colors.green)),
+          const SizedBox(height: 24),
+          Text('Módulo de Nutrición', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: darkSlate, letterSpacing: -0.5)),
+          const SizedBox(height: 16),
+          const Text('Diseña y asigna planes alimenticios personalizados o revisa la dieta activa de tu paciente en tiempo real.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, height: 1.5, fontSize: 15)),
+          const SizedBox(height: 40),
+          
+          SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // ¡EL CONECTOR FINAL!
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => CreateDietScreen(patientId: widget.patientId, patientName: widget.patientName)));
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 4),
+                icon: const Icon(Icons.add),
+                label: const Text('Asignar Nueva Dieta', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          const SizedBox(height: 16),
+          
+          SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PatientDietScreen(patientId: widget.patientId))),
+              style: OutlinedButton.styleFrom(foregroundColor: Colors.green.shade700, side: BorderSide(color: Colors.green.shade200), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+              icon: const Icon(Icons.visibility),
+              label: const Text('Ver Dieta Activa', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- PESTAÑA 3: HISTORIAL CLÍNICO ---
   Widget _buildHistoryTab(Color darkSlate) {
     return Column(
       children: [
-        // ¡AQUÍ ESTÁN LOS BOTONES DE LA IA Y LA BITÁCORA RESTAURADOS!
         Container(
           color: Colors.white,
           padding: const EdgeInsets.all(16),
@@ -152,7 +205,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> with Single
         ),
         Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
         
-        // LA LÍNEA DE TIEMPO
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: _workoutLogsStream,

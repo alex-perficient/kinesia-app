@@ -5,7 +5,6 @@ import '../patients/create_patient_screen.dart';
 import '../patients/patient_profile_screen.dart';
 import 'package:kinesia_app/features/notifications/notification_bell.dart';
 import 'package:shimmer/shimmer.dart';
-// ¡NUEVA IMPORTACIÓN! Ajusta la ruta según dónde guardaste tu paywall_screen.dart
 import 'paywall_screen.dart'; 
 
 class DashboardPhysioScreen extends StatefulWidget {
@@ -28,16 +27,8 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
     super.initState();
     final currentUserId = FirebaseAuth.instance.currentUser!.uid;
 
-    _physioStream = FirebaseFirestore.instance
-        .collection('physiotherapists')
-        .doc(currentUserId)
-        .snapshots();
-
-    _patientsStream = FirebaseFirestore.instance
-        .collection('patients')
-        .where('physioId', isEqualTo: currentUserId)
-        .where('status', isEqualTo: 'active')
-        .snapshots();
+    _physioStream = FirebaseFirestore.instance.collection('physiotherapists').doc(currentUserId).snapshots();
+    _patientsStream = FirebaseFirestore.instance.collection('patients').where('physioId', isEqualTo: currentUserId).where('status', isEqualTo: 'active').snapshots();
   }
 
   @override
@@ -54,29 +45,20 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50, 
       appBar: AppBar(
-        title: const Text('Centro de Mando', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 22, letterSpacing: -0.5)),
+        title: const Text('Centro de Mando', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
         backgroundColor: darkSlate,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           NotificationBell(userId: currentUserId),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white70),
-            tooltip: 'Cerrar Sesión',
-            onPressed: () => FirebaseAuth.instance.signOut(),
-          ),
+          IconButton(icon: const Icon(Icons.logout, color: Colors.white70), tooltip: 'Cerrar Sesión', onPressed: () => FirebaseAuth.instance.signOut()),
         ],
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: _physioStream, 
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Colors.teal));
-          }
-
-          if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text('Error al cargar la información del perfil.'));
-          }
+          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: Colors.teal));
+          if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) return const Center(child: Text('Error al cargar perfil.'));
 
           final physioData = snapshot.data!.data() as Map<String, dynamic>;
           final String physioName = physioData['displayName'] ?? 'Especialista';
@@ -87,85 +69,61 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
 
           return Column(
             children: [
-              // 1. EL HEADER OSCURO TIPO SaaS
+              // 1. HEADER COMPACTADO (Menos padding, fuentes más optimizadas)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                 decoration: const BoxDecoration(
                   color: darkSlate,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(32),
-                    bottomRight: Radius.circular(32),
-                  ),
+                  borderRadius: BorderRadius.only(bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Hola, $shortName 👋',
-                      style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1),
-                    ),
-                    const SizedBox(height: 24),
+                    Text('Hola, $shortName 👋', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                    const SizedBox(height: 16),
                     
-                    // TARJETAS DE KPIs
                     Row(
                       children: [
-                        // KPI 1: Pacientes Activos
                         Expanded(
                           child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                            ),
+                            padding: const EdgeInsets.all(12), // Reducido
+                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.2))),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Pacientes Activos', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                                const SizedBox(height: 8),
+                                const Text('Pacientes Activos', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                const SizedBox(height: 4),
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.baseline,
                                   textBaseline: TextBaseline.alphabetic,
                                   children: [
-                                    Text('$patientCount', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-                                    Text(plan == 'pro' ? '' : ' / $maxPatients', style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                                    Text('$patientCount', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                                    Text(plan == 'pro' ? '' : ' / $maxPatients', style: const TextStyle(color: Colors.white70, fontSize: 14)),
                                   ],
                                 ),
                               ],
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12), // Reducido
                         
-                        // ==========================================
-                        // KPI 2: ESTADO DEL PLAN (CONEXIÓN AL PAYWALL)
-                        // ==========================================
                         Expanded(
                           child: GestureDetector(
-                            onTap: () {
-                              // Solo abrimos el Paywall si NO es Pro
-                              if (plan != 'pro') {
-                                Navigator.push(context, MaterialPageRoute(builder: (context) => const PaywallScreen()));
-                              }
-                            },
+                            onTap: () { if (plan != 'pro') Navigator.push(context, MaterialPageRoute(builder: (context) => const PaywallScreen())); },
                             child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: plan == 'pro' ? Colors.amber.withValues(alpha: 0.2) : Colors.teal.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: plan == 'pro' ? Colors.amber.withValues(alpha: 0.5) : Colors.teal.withValues(alpha: 0.5)),
-                              ),
+                              padding: const EdgeInsets.all(12), // Reducido
+                              decoration: BoxDecoration(color: plan == 'pro' ? Colors.amber.withValues(alpha: 0.2) : Colors.teal.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(16), border: Border.all(color: plan == 'pro' ? Colors.amber.withValues(alpha: 0.5) : Colors.teal.withValues(alpha: 0.5))),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Licencia Actual', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                                  const SizedBox(height: 8),
+                                  const Text('Licencia Actual', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                  const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      Icon(plan == 'pro' ? Icons.star : Icons.verified, color: plan == 'pro' ? Colors.amber : Colors.tealAccent, size: 24),
-                                      const SizedBox(width: 8),
-                                      Text(plan == 'pro' ? 'PRO' : 'GRATUITA', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                      Icon(plan == 'pro' ? Icons.star : Icons.verified, color: plan == 'pro' ? Colors.amber : Colors.tealAccent, size: 20),
+                                      const SizedBox(width: 6),
+                                      Text(plan == 'pro' ? 'PRO' : 'GRATUITA', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                                     ],
                                   ),
                                 ],
@@ -179,33 +137,32 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                 ),
               ),
 
-              // 2. ÁREA DE BÚSQUEDA Y LISTA (Fondo Claro)
+              // 2. LISTA DE PACIENTES OPTIMIZADA
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0), // Reducido
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       
-                      // BARRA DE BÚSQUEDA MODERNA
-                      TextField(
-                        controller: _searchController,
-                        onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
-                        decoration: InputDecoration(
-                          hintText: 'Buscar paciente por nombre...',
-                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(icon: const Icon(Icons.clear, color: Colors.grey), onPressed: () { _searchController.clear(); setState(() => _searchQuery = ''); })
-                              : null,
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      SizedBox(
+                        height: 45, // Barra de búsqueda más delgada
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+                          decoration: InputDecoration(
+                            hintText: 'Buscar paciente...',
+                            prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 20),
+                            suffixIcon: _searchQuery.isNotEmpty ? IconButton(icon: const Icon(Icons.clear, color: Colors.grey, size: 20), onPressed: () { _searchController.clear(); setState(() => _searchQuery = ''); }) : null,
+                            filled: true, fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
-                      // CHIPS DE FILTRO ELEGANTES
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
@@ -214,91 +171,37 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                             return Padding(
                               padding: const EdgeInsets.only(right: 8.0),
                               child: ChoiceChip(
-                                label: Text(filter),
+                                label: Text(filter, style: const TextStyle(fontSize: 12)),
                                 selected: isSelected,
                                 selectedColor: darkSlate,
                                 showCheckmark: false,
-                                labelStyle: TextStyle(
-                                  color: isSelected ? Colors.white : Colors.grey.shade700,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                ),
+                                labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.grey.shade700, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
                                 backgroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  side: BorderSide(color: isSelected ? darkSlate : Colors.grey.shade300),
-                                ),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: isSelected ? darkSlate : Colors.grey.shade300)),
                                 onSelected: (bool selected) => setState(() => _selectedFilter = filter),
                               ),
                             );
                           }).toList(),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
-                      // LA LISTA DE PACIENTES
                       Expanded(
                         child: StreamBuilder<QuerySnapshot>(
                           stream: _patientsStream, 
                           builder: (context, patientSnapshot) {
-                            if (patientSnapshot.connectionState == ConnectionState.waiting) {
-                              return ListView.builder(itemCount: 4, itemBuilder: (context, index) => const PatientCardShimmer());
-                            }
-
-                            if (patientSnapshot.hasError) {
-                              return const Center(child: Text('Error al cargar la lista de pacientes.', style: TextStyle(color: Colors.red)));
-                            }
+                            if (patientSnapshot.connectionState == ConnectionState.waiting) return ListView.builder(itemCount: 4, itemBuilder: (context, index) => const PatientCardShimmer());
+                            if (patientSnapshot.hasError) return const Center(child: Text('Error al cargar', style: TextStyle(color: Colors.red)));
 
                             final patientDocs = patientSnapshot.data?.docs ?? [];
-
                             final filteredDocs = patientDocs.where((doc) {
                               final data = doc.data() as Map<String, dynamic>;
                               final name = (data['fullName'] ?? '').toString().toLowerCase();
                               final String patientType = data['patientType'] ?? 'Clínica';
-                              final matchesSearch = name.contains(_searchQuery);
-                              final matchesFilter = _selectedFilter == 'Todos' || patientType == _selectedFilter;
-                              return matchesSearch && matchesFilter;
+                              return name.contains(_searchQuery) && (_selectedFilter == 'Todos' || patientType == _selectedFilter);
                             }).toList();
 
-                            if (patientDocs.isEmpty) {
-                              return Center(
-                                child: SingleChildScrollView(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(32),
-                                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20)]),
-                                        child: const Icon(Icons.people_alt_outlined, size: 64, color: Colors.teal),
-                                      ),
-                                      const SizedBox(height: 24),
-                                      const Text('Tu panel está listo', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: darkSlate)),
-                                      const SizedBox(height: 12),
-                                      const Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 32.0),
-                                        child: Text(
-                                          'Agrega a tu primer paciente para comenzar a crear planes de rehabilitación de alto impacto.',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-
-                            if (filteredDocs.isEmpty) {
-                              return Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
-                                    const SizedBox(height: 16),
-                                    Text('No encontramos a "$_searchQuery"', style: const TextStyle(color: Colors.grey, fontSize: 16)),
-                                  ],
-                                ),
-                              );
-                            }
+                            if (patientDocs.isEmpty) return const Center(child: Text('Agrega a tu primer paciente', style: TextStyle(color: Colors.grey)));
 
                             return ListView.builder(
                               padding: const EdgeInsets.only(bottom: 80), 
@@ -310,54 +213,31 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
                                 final String patientType = patientData['patientType'] ?? 'Clínica';
 
                                 return Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
+                                  margin: const EdgeInsets.only(bottom: 8), // Reducido
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
+                                    borderRadius: BorderRadius.circular(16), // Reducido
                                     border: Border.all(color: Colors.grey.shade100),
-                                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2))],
                                   ),
                                   child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                                    leading: CircleAvatar(
-                                      backgroundColor: darkSlate,
-                                      radius: 24,
-                                      child: Text(
-                                        name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
-                                      ),
-                                    ),
-                                    title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: darkSlate, letterSpacing: -0.5)),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // Mucho más compacto
+                                    leading: CircleAvatar(backgroundColor: darkSlate, radius: 20, child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
+                                    title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: darkSlate, letterSpacing: -0.5)),
                                     subtitle: Padding(
-                                      padding: const EdgeInsets.only(top: 6.0),
+                                      padding: const EdgeInsets.only(top: 4.0),
                                       child: Row(
                                         children: [
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: patientType == 'Fitness' ? Colors.orange.shade50 : Colors.teal.shade50,
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              patientType.toUpperCase(),
-                                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5, color: patientType == 'Fitness' ? Colors.orange.shade700 : Colors.teal.shade700),
-                                            ),
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(color: patientType == 'Fitness' ? Colors.orange.shade50 : Colors.teal.shade50, borderRadius: BorderRadius.circular(6)),
+                                            child: Text(patientType.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: patientType == 'Fitness' ? Colors.orange.shade700 : Colors.teal.shade700)),
                                           ),
-                                          const SizedBox(width: 12),
-                                          const Icon(Icons.circle, color: Colors.green, size: 10),
-                                          const SizedBox(width: 4),
-                                          const Text('Activo', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
                                         ],
                                       ),
                                     ),
-                                    trailing: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(color: Colors.grey.shade50, shape: BoxShape.circle),
-                                      child: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
-                                    ),
-                                    onTap: () {
-                                      Navigator.push(context, MaterialPageRoute(builder: (context) => PatientProfileScreen(patientId: patientId, patientName: name)));
-                                    },
+                                    trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 14),
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PatientProfileScreen(patientId: patientId, patientName: name))),
                                   ),
                                 );
                               },
@@ -374,14 +254,10 @@ class _DashboardPhysioScreenState extends State<DashboardPhysioScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const CreatePatientScreen()));
-        },
-        backgroundColor: darkSlate,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        icon: const Icon(Icons.add),
-        label: const Text('Nuevo Paciente', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreatePatientScreen())),
+        backgroundColor: darkSlate, foregroundColor: Colors.white, elevation: 4,
+        icon: const Icon(Icons.add, size: 20),
+        label: const Text('Nuevo Paciente', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
       ),
     );
   }
@@ -393,29 +269,13 @@ class PatientCardShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade100)),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        leading: Shimmer.fromColors(
-          baseColor: Colors.grey.shade200,
-          highlightColor: Colors.grey.shade50,
-          child: const CircleAvatar(radius: 24, backgroundColor: Colors.white),
-        ),
-        title: Shimmer.fromColors(
-          baseColor: Colors.grey.shade200,
-          highlightColor: Colors.grey.shade50,
-          child: Container(height: 16, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
-        ),
-        subtitle: Shimmer.fromColors(
-          baseColor: Colors.grey.shade200,
-          highlightColor: Colors.grey.shade50,
-          child: Container(height: 12, width: 100, margin: const EdgeInsets.only(top: 8, right: 100), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Shimmer.fromColors(baseColor: Colors.grey.shade200, highlightColor: Colors.grey.shade50, child: const CircleAvatar(radius: 20, backgroundColor: Colors.white)),
+        title: Shimmer.fromColors(baseColor: Colors.grey.shade200, highlightColor: Colors.grey.shade50, child: Container(height: 14, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)))),
+        subtitle: Shimmer.fromColors(baseColor: Colors.grey.shade200, highlightColor: Colors.grey.shade50, child: Container(height: 10, width: 80, margin: const EdgeInsets.only(top: 8, right: 100), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)))),
       ),
     );
   }

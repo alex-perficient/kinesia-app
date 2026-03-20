@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dashboard_screen.dart'; 
 import 'routine_library_screen.dart';
 import 'physio_calendar_screen.dart';
+import 'physio_profile_screen.dart';
 
 class MainPhysioScreen extends StatefulWidget {
   const MainPhysioScreen({super.key});
@@ -17,7 +18,7 @@ class _MainPhysioScreenState extends State<MainPhysioScreen> {
     const DashboardPhysioScreen(), 
     const PhysioCalendarScreen(), 
     const RoutineLibraryScreen(), 
-    const Center(child: Text('⚙️ Perfil y Ajustes (En Construcción)', style: TextStyle(fontSize: 18, color: Colors.grey))), 
+    const PhysioProfileScreen(),
   ];
 
   @override

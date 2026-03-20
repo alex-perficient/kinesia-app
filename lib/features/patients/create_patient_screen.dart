@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart'; 
+import '../dashboard_physio/paywall_screen.dart';
 
 class CreatePatientScreen extends StatefulWidget {
   const CreatePatientScreen({super.key});
@@ -35,6 +36,7 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
       final String physioId = FirebaseAuth.instance.currentUser!.uid;
       final physioRef = FirebaseFirestore.instance.collection('physiotherapists').doc(physioId);
 
+      // 1. Validar límite de plan gratuito
       final physioDoc = await physioRef.get();
       final physioData = physioDoc.data() as Map<String, dynamic>;
       final String plan = physioData['plan'] ?? 'free';
@@ -42,19 +44,20 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
 
       if (plan == 'free' && currentCount >= 15) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Límite de 15 pacientes alcanzado en el plan Free.')),
-          );
+          // EL GATILLO: Abrimos el Paywall en lugar de solo mostrar el error
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const PaywallScreen()));
         }
         setState(() => _isLoading = false);
         return;
       }
 
+      // 2. EL TRUCO ARQUITECTÓNICO: Crear una segunda app de Firebase temporal
       FirebaseApp tempApp = await Firebase.initializeApp(
         name: 'TemporaryPatientCreation',
         options: Firebase.app().options,
       );
 
+      // 3. Crear el usuario en Authentication usando la app temporal
       UserCredential userCredential = await FirebaseAuth.instanceFor(app: tempApp)
           .createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
@@ -62,8 +65,11 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
       );
 
       final String newPatientId = userCredential.user!.uid;
+
+      // 4. Destruir la app temporal inmediatamente por seguridad
       await tempApp.delete();
 
+      // 5. Guardar el documento del paciente en Firestore con el nuevo ID real
       await FirebaseFirestore.instance.collection('patients').doc(newPatientId).set({
         'physioId': physioId,
         'fullName': _nameController.text.trim(),
@@ -73,6 +79,7 @@ class _CreatePatientScreenState extends State<CreatePatientScreen> {
         'patientType': _selectedPatientType,
       });
 
+      // 6. Actualizar el contador del fisio
       await physioRef.update({'patientCount': FieldValue.increment(1)});
 
       if (mounted) {

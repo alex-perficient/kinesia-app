@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+// ¡IMPORTANTE PARA QUE EL SEMÁFORO FUNCIONE AQUÍ!
+import 'package:kinesia_app/services/notification_service.dart';
 
 class PatientDailyLogScreen extends StatefulWidget {
   const PatientDailyLogScreen({super.key});
@@ -15,20 +17,60 @@ class _PatientDailyLogScreenState extends State<PatientDailyLogScreen> {
   final TextEditingController _notesController = TextEditingController();
   bool _isSaving = false;
 
-  // Helpers para los emojis dinámicos
   String _getPainEmoji(double value) {
-    if (value == 0) return '💪'; // Cero dolor, fuerte
-    if (value <= 3) return '🙂'; // Ligera molestia
-    if (value <= 6) return '😕'; // Dolor moderado
-    if (value <= 8) return '😣'; // Dolor fuerte
-    return '😫'; // Inaguantable
+    if (value == 0) return '💪'; 
+    if (value <= 3) return '🙂'; 
+    if (value <= 6) return '😕'; 
+    if (value <= 8) return '😣'; 
+    return '😫'; 
   }
 
   String _getEnergyEmoji(double value) {
-    if (value <= 3) return '⚡'; // 1-3: Mucha energía
-    if (value <= 6) return '🔋'; // 4-6: Batería normal
-    if (value <= 8) return '🪫'; // 7-8: Batería baja
-    return '🛌'; // 9-10: Exhausto
+    if (value <= 3) return '⚡'; 
+    if (value <= 6) return '🔋'; 
+    if (value <= 8) return '🪫'; 
+    return '🛌'; 
+  }
+
+  // GAMIFICACIÓN Y SEMÁFORO PARA EL DIARIO
+  Future<void> _updatePatientStreakAndCheckAlerts(String physioId, String patientName) async {
+    final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+    final patientRef = FirebaseFirestore.instance.collection('patients').doc(currentUserId);
+    final patientDoc = await patientRef.get();
+    
+    if (patientDoc.exists) {
+      final data = patientDoc.data() as Map<String, dynamic>;
+      int streak = data['streakCount'] ?? 0;
+      Timestamp? lastDate = data['lastActivityDate'];
+
+      final now = DateTime.now();
+      if (lastDate != null) {
+        final last = lastDate.toDate();
+        final difference = DateTime(now.year, now.month, now.day).difference(DateTime(last.year, last.month, last.day)).inDays;
+
+        if (difference == 1) {
+          streak += 1;
+        } else if (difference > 1) {
+          streak = 1;
+        }
+      } else {
+        streak = 1;
+      }
+
+      await patientRef.update({
+        'streakCount': streak,
+        'lastActivityDate': FieldValue.serverTimestamp(),
+      });
+
+      // SEMÁFORO CLÍNICO 🚨
+      if (physioId.isNotEmpty && _painLevel >= 7) {
+        await NotificationService.sendNotification(
+          receiverId: physioId,
+          title: '🚨 Alerta de Dolor Diario',
+          body: '$patientName reportó un nivel de dolor de ${_painLevel.toInt()} el día de hoy. Sugerimos contactarlo.',
+        );
+      }
+    }
   }
 
   Future<void> _saveDailyLog() async {
@@ -39,6 +81,7 @@ class _PatientDailyLogScreenState extends State<PatientDailyLogScreen> {
       
       final patientDoc = await FirebaseFirestore.instance.collection('patients').doc(currentUserId).get();
       final String physioId = patientDoc.data()?['physioId'] ?? '';
+      final String patientName = patientDoc.data()?['fullName'] ?? 'Tu paciente';
 
       await FirebaseFirestore.instance.collection('daily_logs').add({
         'patientId': currentUserId,
@@ -49,20 +92,21 @@ class _PatientDailyLogScreenState extends State<PatientDailyLogScreen> {
         'notes': _notesController.text.trim(),
       });
 
+      // Disparamos la lógica de gamificación y alertas
+      await _updatePatientStreakAndCheckAlerts(physioId, patientName);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('¡Excelente! Registro completado.', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: Text('¡Excelente! Registro completado y racha actualizada 🔥', style: TextStyle(fontWeight: FontWeight.bold)),
             backgroundColor: Colors.teal,
-            behavior: SnackBarBehavior.floating, // Estilo Premium flotante
+            behavior: SnackBarBehavior.floating, 
           )
         );
         Navigator.pop(context); 
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -77,27 +121,17 @@ class _PatientDailyLogScreenState extends State<PatientDailyLogScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Check-in Diario'),
-      ),
+      appBar: AppBar(title: const Text('Check-in Diario')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // CABECERA MOTIVACIONAL
-            const Text(
-              'Escucha a tu cuerpo',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5),
-            ),
+            const Text('Escucha a tu cuerpo', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
             const SizedBox(height: 8),
-            const Text(
-              'Un buen atleta sabe cuándo empujar y cuándo descansar. ¿Cómo te sientes hoy?',
-              style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.4),
-            ),
+            const Text('Un buen atleta sabe cuándo empujar y cuándo descansar. ¿Cómo te sientes hoy?', style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.4)),
             const SizedBox(height: 32),
 
-            // TARJETA 1: DOLOR FÍSICO
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -107,33 +141,20 @@ class _PatientDailyLogScreenState extends State<PatientDailyLogScreen> {
                     const SizedBox(height: 16),
                     const Text('Nivel de Dolor', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    Text(
-                      _painLevel == 0 ? 'Sin molestias físicas' : 'Nivel ${_painLevel.toInt()}',
-                      style: TextStyle(fontSize: 16, color: _painLevel > 6 ? Colors.red : Colors.teal),
-                    ),
+                    Text(_painLevel == 0 ? 'Sin molestias físicas' : 'Nivel ${_painLevel.toInt()}', style: TextStyle(fontSize: 16, color: _painLevel >= 7 ? Colors.red : Colors.teal)),
                     const SizedBox(height: 16),
                     Slider(
-                      value: _painLevel,
-                      min: 0,
-                      max: 10,
-                      divisions: 10,
-                      activeColor: _painLevel > 6 ? Colors.red : (_painLevel > 3 ? Colors.orange : Colors.teal),
+                      value: _painLevel, min: 0, max: 10, divisions: 10,
+                      activeColor: _painLevel >= 7 ? Colors.red : (_painLevel > 3 ? Colors.orange : Colors.teal),
                       onChanged: (val) => setState(() => _painLevel = val),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text('Nada', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)), 
-                        Text('Insoportable', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))
-                      ],
-                    ),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: const [Text('Nada', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)), Text('Insoportable', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))]),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 20),
 
-            // TARJETA 2: ENERGÍA (Antes "Fatiga")
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
@@ -143,73 +164,37 @@ class _PatientDailyLogScreenState extends State<PatientDailyLogScreen> {
                     const SizedBox(height: 16),
                     const Text('Nivel de Energía', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    Text(
-                      'Impacto: ${_fatigueLevel.toInt()}',
-                      style: TextStyle(fontSize: 16, color: _fatigueLevel > 7 ? Colors.red : Colors.blue),
-                    ),
+                    Text('Impacto: ${_fatigueLevel.toInt()}', style: TextStyle(fontSize: 16, color: _fatigueLevel > 7 ? Colors.red : Colors.blue)),
                     const SizedBox(height: 16),
-                    Slider(
-                      value: _fatigueLevel,
-                      min: 1,
-                      max: 10,
-                      divisions: 9,
-                      activeColor: Colors.blue,
-                      onChanged: (val) => setState(() => _fatigueLevel = val),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text('Al máximo', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)), 
-                        Text('Exhausto', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))
-                      ],
-                    ),
+                    Slider(value: _fatigueLevel, min: 1, max: 10, divisions: 9, activeColor: Colors.blue, onChanged: (val) => setState(() => _fatigueLevel = val)),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: const [Text('Al máximo', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)), Text('Exhausto', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))]),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 20),
 
-            // TARJETA 3: DIARIO (Notas)
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.book, color: Colors.teal),
-                        SizedBox(width: 8),
-                        Text('Diario de Recuperación', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
+                    const Row(children: [Icon(Icons.book, color: Colors.teal), SizedBox(width: 8), Text('Diario de Recuperación', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))]),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _notesController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        hintText: 'Ej. Dormí excelente, pero siento la rodilla un poco rígida al caminar...',
-                        border: InputBorder.none, // Quitamos el borde duro para que parezca una libreta
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        filled: false,
-                      ),
-                    ),
+                    TextField(controller: _notesController, maxLines: 3, decoration: const InputDecoration(hintText: 'Ej. Dormí excelente, pero siento la rodilla rígida...', border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none, filled: false)),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 32),
 
-            // BOTÓN DE GUARDAR
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _isSaving ? null : _saveDailyLog,
                 icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.check_circle),
-                label: _isSaving 
-                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Completar Check-in'),
+                label: _isSaving ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Completar Check-in'),
               ),
             ),
             const SizedBox(height: 24),
