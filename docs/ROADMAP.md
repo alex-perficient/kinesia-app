@@ -85,7 +85,8 @@
 ## ✨ Épica 7: "Facelift" UI/UX y Retención (Capa Visual)
 - [x] **Pulido de Interfaz Profesional:** Homologar radios de bordes, sombras, paleta cromática de la marca y estados vacíos (empty states) con ilustraciones para garantizar una experiencia de usuario *Premium*.
 - [x] **Soporte Multimedia Libre:** Asegurar que el fisio pueda enviar fácilmente links de YouTube sugeridos o cargar sus propios videos explicativos.
-- [ ] **Gamificación (Low Priority):** Sistema de rachas o recompensas visuales para pacientes con alta adherencia al tratamiento.
+- [ ] **Gamificación :** Sistema de rachas o recompensas visuales para pacientes con alta adherencia al tratamiento. Premios por usar la app, hacer sus rutinas y ejercicios y temas basados en anime o cosas similares, desbloquear entrenadores como Goku/Vegeta/etc de DBZ, Luffy/Zoro/Smoker de One Piece, Rocky/Mike Tyson/etc de boxeo, etc.
+Sanji/Dende como nutricionistas, etc
 
 
 ----------------------------------------------------------------------------------------------------------------
@@ -150,7 +151,7 @@ Estas tareas requieren crear nuevas colecciones en Firebase y rediseñar flujos.
 Esto es expansión de negocio pura.
 
 7. **Módulo de Nutrición y Tracking GPS:** 
-- [ ] Abrir el sistema para nutriólogos. Para la parte de registrar rutas al salir a correr, será ideal aprovechar la arquitectura y la infraestructura de geolocalización que ya estás desarrollando para Gula Maps. Podemos integrar esos módulos para que convivan en el mismo ecosistema.
+- [casi] Abrir el sistema para nutriólogos. Para la parte de registrar rutas al salir a correr, será ideal aprovechar la arquitectura y la infraestructura de geolocalización que ya estás desarrollando para Gula Maps. Podemos integrar esos módulos para que convivan en el mismo ecosistema.
 
 8. **Marca Blanca (White-Labeling):** 
 - [ ] El modelo de negocio definitivo. Un fisio te paga $500 - $1,000 USD mensuales o un setup fee alto. Tú clonas el código, cambias los colores, pones su logo, y le compilas su propia app en la App Store bajo la infraestructura de Mon TI Labs. Es un servicio "Premium VIP" que no requiere programar la app de cero, solo cambiar variables de entorno.

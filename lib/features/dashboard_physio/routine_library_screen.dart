@@ -148,7 +148,7 @@ class _RoutineLibraryScreenState extends State<RoutineLibraryScreen> with Single
             width: double.infinity,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: const NetworkImage('https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?q=80&w=2070&auto=format&fit=crop'), 
+                image: const AssetImage('assets/images/fondo_gym.jpg'),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(Colors.black.withValues(alpha:0.65), BlendMode.darken), 
               ),
