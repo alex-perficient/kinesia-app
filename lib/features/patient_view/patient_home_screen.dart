@@ -4,8 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:kinesia_app/features/notifications/notification_bell.dart';
 import 'patient_routine_screen.dart';
 import 'patient_daily_log_screen.dart';
-// ¡IMPORTAMOS LA NUEVA PANTALLA DE DIETA!
 import 'patient_diet_screen.dart';
+// ¡NUEVO: Importamos la biblioteca para el Atleta B2C!
+import '../../features/dashboard_physio/routine_library_screen.dart'; 
 
 class PatientHomeScreen extends StatelessWidget {
   const PatientHomeScreen({super.key});
@@ -13,6 +14,7 @@ class PatientHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+    const Color darkSlate = Color(0xFF0F172A);
 
     return Scaffold(
       extendBodyBehindAppBar: true, 
@@ -38,16 +40,20 @@ class PatientHomeScreen extends StatelessWidget {
 
           String patientName = 'Atleta';
           int streakCount = 0;
+          String patientType = 'Clínica'; // Por defecto asumimos que tiene un fisio
 
           if (userSnapshot.hasData && userSnapshot.data!.exists) {
             final data = userSnapshot.data!.data() as Map<String, dynamic>;
             patientName = (data['fullName'] ?? 'Atleta').split(' ')[0]; 
             streakCount = data['streakCount'] ?? 0;
+            patientType = data['patientType'] ?? 'Clínica'; // Leemos si es B2C
           }
+
+          final bool isB2C = patientType == 'B2C';
 
           return Stack(
             children: [
-              // FONDO HERO
+              // FONDO HERO INMERSIVO
               Container(
                 height: MediaQuery.of(context).size.height * 0.45,
                 width: double.infinity,
@@ -60,12 +66,13 @@ class PatientHomeScreen extends StatelessWidget {
                 ),
               ),
 
-              // FRENTE
+              // CONTENIDO PRINCIPAL FLOTANTE
               SafeArea(
                 bottom: false,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // CABECERA (HOLA, NOMBRE)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                       child: Column(
@@ -96,15 +103,16 @@ class PatientHomeScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Tu momento\nes ahora.',
-                            style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900, height: 1.1, letterSpacing: -1),
+                          Text(
+                            isB2C ? 'Supera tus\nlímites.' : 'Tu momento\nes ahora.',
+                            style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900, height: 1.1, letterSpacing: -1),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
 
+                    // LISTA DE TARJETAS (EL CEREBRO DE LA PANTALLA)
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
@@ -120,9 +128,13 @@ class PatientHomeScreen extends StatelessWidget {
                           return ListView(
                             padding: const EdgeInsets.symmetric(horizontal: 20.0),
                             children: [
-                              if (docs.isEmpty)
+                              
+                              // ---- LA MAGIA DEL B2C EMPIEZA AQUÍ ----
+                              if (docs.isEmpty && !isB2C)
+                                // TARJETA PACIENTE DE CLÍNICA SIN RUTINAS
                                 Card(
                                   color: Colors.white.withValues(alpha: 0.95),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                                   child: const Padding(
                                     padding: EdgeInsets.all(32.0),
                                     child: Column(
@@ -131,12 +143,54 @@ class PatientHomeScreen extends StatelessWidget {
                                         SizedBox(height: 16),
                                         Text('Día de Recuperación', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                                         SizedBox(height: 8),
-                                        Text('No tienes rutinas activas hoy. Aprovecha para descansar.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+                                        Text('No tienes rutinas activas hoy. Aprovecha para descansar o espera las indicaciones de tu especialista.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
                                       ],
                                     ),
                                   ),
                                 ),
 
+                              if (docs.isEmpty && isB2C)
+                                // TARJETA ATLETA B2C (AUTODIDACTA)
+                                Card(
+                                  color: darkSlate,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                  elevation: 8,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(32.0),
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(color: Colors.white.withValues(alpha:0.1), shape: BoxShape.circle),
+                                          child: const Icon(Icons.bolt, size: 48, color: Colors.amber),
+                                        ),
+                                        const SizedBox(height: 24),
+                                        const Text('¿Qué entrenamos hoy?', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
+                                        const SizedBox(height: 12),
+                                        const Text('Explora cientos de ejercicios o pide a nuestra IA que arme una rutina perfecta para tus objetivos de hoy.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, height: 1.4)),
+                                        const SizedBox(height: 32),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          height: 55,
+                                          child: ElevatedButton.icon(
+                                            // Conectamos a la biblioteca que ya tienes construida
+                                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RoutineLibraryScreen())),
+                                            icon: const Icon(Icons.auto_awesome),
+                                            label: const Text('Explorar Biblioteca Kines.ia', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.tealAccent.shade400,
+                                              foregroundColor: darkSlate,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
+                                            ),
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              // ---- FIN DE LA MAGIA B2C ----
+
+                              // SI TIENE RUTINAS (APLICA PARA AMBOS ROLES)
                               ...docs.map((routineDoc) {
                                 final routineData = routineDoc.data() as Map<String, dynamic>;
                                 final String title = routineData['title'] ?? 'Mi Rutina';
@@ -144,6 +198,8 @@ class PatientHomeScreen extends StatelessWidget {
 
                                 return Card(
                                   margin: const EdgeInsets.only(bottom: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                  elevation: 4,
                                   child: Padding(
                                     padding: const EdgeInsets.all(24.0),
                                     child: Column(
@@ -161,9 +217,11 @@ class PatientHomeScreen extends StatelessWidget {
                                         const SizedBox(height: 24),
                                         SizedBox(
                                           width: double.infinity,
+                                          height: 55,
                                           child: ElevatedButton(
                                             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PatientRoutineScreen(routineId: routineDoc.id, patientName: patientName))),
-                                            child: const Text('Comenzar Entrenamiento'),
+                                            style: ElevatedButton.styleFrom(backgroundColor: darkSlate, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                                            child: const Text('Comenzar Entrenamiento', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                           ),
                                         ),
                                       ],
@@ -174,10 +232,10 @@ class PatientHomeScreen extends StatelessWidget {
 
                               const SizedBox(height: 16),
 
-                              // NUEVA TARJETA: PLAN NUTRICIONAL
+                              // TARJETA: NUTRICIÓN
                               Card(
                                 color: Colors.green.shade50,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.green.shade100)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: BorderSide(color: Colors.green.shade200, width: 2)),
                                 child: Padding(
                                   padding: const EdgeInsets.all(24.0),
                                   child: Column(
@@ -191,11 +249,14 @@ class PatientHomeScreen extends StatelessWidget {
                                         ],
                                       ),
                                       const SizedBox(height: 8),
-                                      const Text('Combustible para tu recuperación y rendimiento. Revisa tus macros y comidas.', style: TextStyle(color: Colors.black87)),
+                                      Text(
+                                        isB2C ? 'Registra tus comidas y mantén tus macros bajo control.' : 'Revisa el plan nutricional que tu especialista diseñó para ti.', 
+                                        style: const TextStyle(color: Colors.black87)
+                                      ),
                                       const SizedBox(height: 24),
                                       SizedBox(
                                         width: double.infinity,
-                                        height: 50,
+                                        height: 55,
                                         child: ElevatedButton(
                                           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PatientDietScreen(patientId: currentUserId))),
                                           style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
@@ -208,25 +269,35 @@ class PatientHomeScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 16),
 
-                              // TARJETA DE BITÁCORA DIARIA
+                              // TARJETA: BITÁCORA DIARIA
                               Card(
-                                color: const Color(0xFF0F172A), 
+                                color: Colors.white, 
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: BorderSide(color: Colors.grey.shade200)),
+                                elevation: 0,
                                 child: Padding(
                                   padding: const EdgeInsets.all(24.0),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text('Bitácora Diaria', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                                      const Text('Bitácora Diaria', style: TextStyle(color: darkSlate, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
                                       const SizedBox(height: 8),
-                                      const Text('Ayuda a tu fisio a entender cómo responde tu cuerpo.', style: TextStyle(color: Colors.white70)),
+                                      Text(
+                                        isB2C ? 'Lleva un registro de tu progreso, dolor y descanso.' : 'Ayuda a tu fisio a entender cómo responde tu cuerpo a las terapias.', 
+                                        style: const TextStyle(color: Colors.grey, height: 1.4)
+                                      ),
                                       const SizedBox(height: 24),
                                       SizedBox(
                                         width: double.infinity,
+                                        height: 55,
                                         child: OutlinedButton.icon(
                                           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PatientDailyLogScreen())),
-                                          style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white24, width: 2)),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: darkSlate, 
+                                            side: BorderSide(color: Colors.grey.shade300, width: 2),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
+                                          ),
                                           icon: const Icon(Icons.mood),
-                                          label: const Text('Registrar Bienestar'),
+                                          label: const Text('Registrar Bienestar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                         ),
                                       ),
                                     ],

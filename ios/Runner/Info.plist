@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>KinesIA necesita acceso a tu ubicación para rastrear tu ruta, distancia y ritmo (pace) durante tus entrenamientos de cardio.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>KinesIA necesita acceso a tu ubicación para no perder el rastro de tu carrera si bloqueas la pantalla de tu iPhone.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
