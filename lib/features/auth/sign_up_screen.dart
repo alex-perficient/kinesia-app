@@ -85,7 +85,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
             decoration: BoxDecoration(
               image: DecorationImage(
                 // Otra fotografía premium complementaria
-                image: const NetworkImage('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070&auto=format&fit=crop'),
+                image: const AssetImage('assets/images/fondo_signup.png'),
+             //   image: const NetworkImage('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070&auto=format&fit=crop'),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(Colors.black.withValues(alpha:0.75), BlendMode.darken),
               ),

@@ -66,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
             decoration: BoxDecoration(
               image: DecorationImage(
                 // Fotografía premium de un centro de entrenamiento/clínica
-                image: const AssetImage('assets/images/fondo_login.jpg'),
+                image: const AssetImage('assets/images/fondo_login.png'),
                 fit: BoxFit.cover,
                 // Filtro oscuro muy elegante para que resalte el blanco
                 colorFilter: ColorFilter.mode(Colors.black.withValues(alpha:0.75), BlendMode.darken),

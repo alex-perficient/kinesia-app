@@ -11,14 +11,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       # 1. Instalamos Flutter en la máquina de GitHub
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          
+      # 2. Recrear variables de entorno vitales (Intacto)
       - name: Crear archivo .env
         run: echo "${{ secrets.ENV_FILE_CONTENT }}" > .env
-      - run: flutter pub get && flutter build web
+        
+      # 3. Limpieza profunda (NUEVO)
+      - name: Limpiar cache de Flutter
+        run: flutter clean
+        
+      # 4. Descargar dependencias frescas
+      - name: Instalar dependencias
+        run: flutter pub get
+        
+      # 5. Ejecutar pruebas automatizadas (NUEVO - Barrera de seguridad)
+      - name: Correr tests
+        run: flutter test
+        
+      # 6. Compilar la aplicación web
+      - name: Compilar Web
+        run: flutter build web
+        
+      # 7. Desplegar a Firebase (Intacto)
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

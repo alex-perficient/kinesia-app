@@ -53,7 +53,7 @@ class PatientHomeScreen extends StatelessWidget {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: const AssetImage('assets/images/fondo_atleta.jpg'),
+                    image: const AssetImage('assets/images/fondo_atleta.png'),
                     fit: BoxFit.cover,
                     colorFilter: ColorFilter.mode(Colors.black.withValues(alpha: 0.6), BlendMode.darken),
                   ),
