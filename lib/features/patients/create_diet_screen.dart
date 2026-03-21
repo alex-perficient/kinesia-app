@@ -150,6 +150,7 @@ class _CreateDietScreenState extends State<CreateDietScreen> {
         title: Text('Dieta: ${widget.patientName}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: -0.5)),
         backgroundColor: darkSlate,
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
       body: SingleChildScrollView(

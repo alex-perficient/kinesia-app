@@ -16,6 +16,7 @@ class PatientDietScreen extends StatelessWidget {
         title: const Text('Mi Plan Nutricional', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
         backgroundColor: darkSlate,
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
       body: StreamBuilder<QuerySnapshot>(

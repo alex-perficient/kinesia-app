@@ -206,7 +206,7 @@ class _PatientRunTrackerScreenState extends State<PatientRunTrackerScreen> {
                       children: [
                         const Text('DISTANCIA', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
                         const SizedBox(height: 4),
-                        Text('${_totalDistanceKm.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900)),
+                        Text(_totalDistanceKm.toStringAsFixed(2), style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900)),
                         const Text('km', style: TextStyle(color: Colors.tealAccent, fontSize: 12, fontWeight: FontWeight.bold)),
                       ],
                     ),
