@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'create_template_screen.dart';
 import 'template_detail_screen.dart';
 import '../../features/patients/exercise_config_dialog.dart'; // ¡Importamos el diálogo que ya habías creado!
+import 'physio_exercise_bank_screen.dart';
 
 class RoutineLibraryScreen extends StatefulWidget {
   const RoutineLibraryScreen({super.key});
@@ -292,7 +293,21 @@ class _RoutineLibraryScreenState extends State<RoutineLibraryScreen> with Single
             const SizedBox(height: 16),
             Text(description, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Colors.grey, height: 1.5)),
             const SizedBox(height: 32),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(20)), child: const Text('EN DESARROLLO', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12, letterSpacing: 1))),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PhysioExerciseBankScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Explorar Banco Global', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
           ],
         ),
       ),

@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_screen.dart';
 //import '../dashboard_physio/dashboard_screen.dart';
 import '../dashboard_physio/main_physio_screen.dart';
-import '../patient_view/patient_home_screen.dart';
+import '../patient_view/main_patient_screen.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -39,7 +39,7 @@ class AuthGate extends StatelessWidget {
               return const MainPhysioScreen(); //DashboardPhysioScreen(); // Entra el Fisioterapeuta
             } else {
               // Si no existe, por descarte es un paciente
-              return const PatientHomeScreen(); // Entra el Paciente
+              return const MainPatientScreen(); // Entra el Paciente
             }
           },
         );
