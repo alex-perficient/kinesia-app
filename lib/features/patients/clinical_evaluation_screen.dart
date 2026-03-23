@@ -11,12 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../services/notification_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../dashboard_physio/paywall_screen.dart';
-
-// Estructura de control para campos dinámicos
-class CustomField {
-  TextEditingController nameController = TextEditingController();
-  TextEditingController valueController = TextEditingController();
-}
+import 'package:image_picker/image_picker.dart';
 
 class ClinicalEvaluationScreen extends StatefulWidget {
   final String patientId;
@@ -29,22 +24,18 @@ class ClinicalEvaluationScreen extends StatefulWidget {
   });
 
   @override
-  State<ClinicalEvaluationScreen> createState() => _ClinicalEvaluationScreenState();
+  State<ClinicalEvaluationScreen> createState() =>
+      _ClinicalEvaluationScreenState();
 }
 
 class _ClinicalEvaluationScreenState extends State<ClinicalEvaluationScreen> {
-  // Campos Estáticos Originales
+  // Campos Clínicos
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _diagnosisController = TextEditingController();
   final TextEditingController _objectivesController = TextEditingController();
   final TextEditingController _painZonesController = TextEditingController();
-
-  // NUEVO: Campos Demográficos Básicos
-  final TextEditingController _ageController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-
-  // NUEVO: Campos Dinámicos
-  final List<CustomField> _customFields = [];
+  bool _isScanning = false;
+  final ImagePicker _picker = ImagePicker();
 
   bool _isAnalyzing = false;
   bool _isSaving = false;
@@ -60,16 +51,20 @@ class _ClinicalEvaluationScreenState extends State<ClinicalEvaluationScreen> {
   void initState() {
     super.initState();
     _audioRecorder = AudioRecorder();
-    _checkFreemiumStatus(); 
+    _checkFreemiumStatus();
   }
 
   Future<void> _checkFreemiumStatus() async {
     try {
       final physioId = FirebaseAuth.instance.currentUser!.uid;
-      final doc = await FirebaseFirestore.instance.collection('physiotherapists').doc(physioId).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('physiotherapists')
+          .doc(physioId)
+          .get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
-        if ((data['plan'] ?? 'free') == 'free' && (data['patientCount'] ?? 0) >= 15) {
+        if ((data['plan'] ?? 'free') == 'free' &&
+            (data['patientCount'] ?? 0) >= 15) {
           setState(() => _isAiLocked = true);
         }
       }
@@ -80,16 +75,14 @@ class _ClinicalEvaluationScreenState extends State<ClinicalEvaluationScreen> {
     }
   }
 
-  // Agrega un campo dinámico a la lista
-  void _addCustomField() {
-    setState(() {
-      _customFields.add(CustomField());
-    });
-  }
-
   Future<void> _runAIAnalysis() async {
-    if (_notesController.text.trim().isEmpty && (_audioPath == null || _audioPath!.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Escribe notas de la sesión o graba un audio primero.')));
+    if (_notesController.text.trim().isEmpty &&
+        (_audioPath == null || _audioPath!.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Escribe notas de la sesión o graba un audio primero.'),
+        ),
+      );
       return;
     }
 
@@ -97,7 +90,10 @@ class _ClinicalEvaluationScreenState extends State<ClinicalEvaluationScreen> {
 
     try {
       final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-      final model = GenerativeModel(model: 'gemini-3-flash-preview', apiKey: apiKey);
+      final model = GenerativeModel(
+        model: 'gemini-1.5-flash',
+        apiKey: apiKey,
+      ); // Actualizado a modelo estable reciente
 
       final promptText = '''
 Eres un asistente médico experto en fisioterapia. Analiza la consulta. 
@@ -108,30 +104,102 @@ Responde ÚNICAMENTE con un JSON válido con esas 4 llaves exactas en minúscula
       List<Part> promptParts = [TextPart(promptText)];
 
       if (_audioPath != null && _audioPath!.isNotEmpty) {
-        promptParts.add(DataPart('audio/mp4', await File(_audioPath!).readAsBytes()));
+        promptParts.add(
+          DataPart('audio/mp4', await File(_audioPath!).readAsBytes()),
+        );
       } else {
         promptParts.add(TextPart('\nNOTAS:\n${_notesController.text}'));
       }
 
-      final response = await model.generateContent([Content.multi(promptParts)]);
-      String rawJson = (response.text ?? '{}').replaceAll('```json', '').replaceAll('```', '').trim();
+      final response = await model.generateContent([
+        Content.multi(promptParts),
+      ]);
+      String rawJson = (response.text ?? '{}')
+          .replaceAll('```json', '')
+          .replaceAll('```', '')
+          .trim();
       final data = jsonDecode(rawJson);
 
       setState(() {
-        // La IA rellena automáticamente los campos que el fisio ya estaba viendo
-        if(data['diagnosis'] != null) _diagnosisController.text = data['diagnosis'];
-        if(data['objectives'] != null) _objectivesController.text = data['objectives'];
-        if(data['painZones'] != null) _painZonesController.text = data['painZones'];
-        if (_audioPath != null && _audioPath!.isNotEmpty) _notesController.text = data['transcription'] ?? 'Sin transcripción.';
+        if (data['diagnosis'] != null) {
+          _diagnosisController.text = data['diagnosis'];
+        }
+        if (data['objectives'] != null) {
+          _objectivesController.text = data['objectives'];
+        }
+        if (data['painZones'] != null) {
+          _painZonesController.text = data['painZones'];
+        }
+        if (_audioPath != null && _audioPath!.isNotEmpty) {
+          _notesController.text = data['transcription'] ?? 'Sin transcripción.';
+        }
         _isAnalyzing = false;
       });
-      
+
       if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('¡Datos extraídos mágicamente! ✨'), backgroundColor: Colors.teal));
-    } }catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('¡Datos extraídos mágicamente! ✨'),
+            backgroundColor: Colors.teal,
+          ),
+        );
+      }
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error de IA: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error de IA: $e')));
         setState(() => _isAnalyzing = false);
+      }
+    }
+  }
+
+  Future<void> _scanDocument() async {
+    try {
+      // 1. Abrimos la cámara
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+      );
+      if (image == null) return; // El usuario canceló
+
+      setState(() => _isScanning = true);
+
+      // 2. Preparamos la imagen para Gemini
+      final bytes = await image.readAsBytes();
+      final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+      final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
+
+      // 3. El Prompt estricto para OCR Médico
+      final prompt = TextPart(
+        'Eres un asistente médico experto. Transcribe de forma exacta todo el texto (manuscrito o impreso) que veas en esta hoja o receta médica. No agregues introducciones ni comentarios, devuelve exclusivamente el texto crudo que logres leer.',
+      );
+      final imagePart = DataPart('image/jpeg', bytes);
+
+      // 4. Mandamos a procesar
+      final response = await model.generateContent([
+        Content.multi([prompt, imagePart]),
+      ]);
+
+      // 5. Vaciamos el texto en las notas
+      setState(() {
+        // Si ya había texto, le sumamos el nuevo
+        final textoPrevio = _notesController.text.isNotEmpty ? "\n" : "";
+        _notesController.text += textoPrevio + (response.text ?? '').trim();
+        _isScanning = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('📄 Texto extraído mágicamente')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al escanear: $e')));
+        setState(() => _isScanning = false);
       }
     }
   }
@@ -142,25 +210,19 @@ Responde ÚNICAMENTE con un JSON válido con esas 4 llaves exactas en minúscula
       String? uploadedAudioUrl;
       if (_audioPath != null && _audioPath!.isNotEmpty) {
         if (!kIsWeb) {
-          final uploadTask = await FirebaseStorage.instance.ref().child('audios_clinicos/${widget.patientId}_${DateTime.now().millisecondsSinceEpoch}.m4a').putFile(File(_audioPath!));
+          final uploadTask = await FirebaseStorage.instance
+              .ref()
+              .child(
+                'audios_clinicos/${widget.patientId}_${DateTime.now().millisecondsSinceEpoch}.m4a',
+              )
+              .putFile(File(_audioPath!));
           uploadedAudioUrl = await uploadTask.ref.getDownloadURL();
-        }
-      }
-
-      // Procesamos los campos personalizados para guardarlos como Mapa
-      Map<String, String> dynamicData = {};
-      for (var field in _customFields) {
-        if (field.nameController.text.trim().isNotEmpty) {
-          dynamicData[field.nameController.text.trim()] = field.valueController.text.trim();
         }
       }
 
       await FirebaseFirestore.instance.collection('clinical_histories').add({
         'patientId': widget.patientId,
         'date': FieldValue.serverTimestamp(),
-        'age': _ageController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'customFields': dynamicData, // Guardamos Dieta, Alergias, etc.
         'rawNotes': _notesController.text.trim(),
         'diagnosis': _diagnosisController.text.trim(),
         'objectives': _objectivesController.text.trim(),
@@ -168,14 +230,24 @@ Responde ÚNICAMENTE con un JSON válido con esas 4 llaves exactas en minúscula
         'audioUrl': uploadedAudioUrl,
       });
 
-      await NotificationService.sendNotification(receiverId: widget.patientId, title: 'Nuevo Expediente Clínico', body: 'Tu fisioterapeuta ha actualizado tus notas.');
+      await NotificationService.sendNotification(
+        receiverId: widget.patientId,
+        title: 'Nuevo Expediente Clínico',
+        body: 'Tu fisioterapeuta ha actualizado tus notas.',
+      );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Expediente guardado con éxito ✅')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Expediente guardado con éxito ✅')),
+        );
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -185,33 +257,55 @@ Responde ÚNICAMENTE con un JSON válido con esas 4 llaves exactas en minúscula
     try {
       if (_isRecording) {
         final path = await _audioRecorder.stop();
-        setState(() { _isRecording = false; _audioPath = path; _notesController.text = "Audio capturado y listo para analizar."; });
+        setState(() {
+          _isRecording = false;
+          _audioPath = path;
+          _notesController.text = "Audio capturado y listo para analizar.";
+        });
       } else {
         if (await _audioRecorder.hasPermission()) {
           String tempPath = '';
-          if (!kIsWeb) tempPath = '${(await getTemporaryDirectory()).path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
-          await _audioRecorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: tempPath);
+          if (!kIsWeb) {
+            tempPath =
+                '${(await getTemporaryDirectory()).path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
+          }
+          await _audioRecorder.start(
+            const RecordConfig(encoder: AudioEncoder.aacLc),
+            path: tempPath,
+          );
           setState(() => _isRecording = true);
         }
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error micrófono: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error micrófono: $e')));
+      }
     }
   }
 
   @override
   void dispose() {
-    _notesController.dispose(); _diagnosisController.dispose(); _objectivesController.dispose(); _painZonesController.dispose();
-    _ageController.dispose(); _phoneController.dispose();
-    for (var field in _customFields) { field.nameController.dispose(); field.valueController.dispose(); }
+    _notesController.dispose();
+    _diagnosisController.dispose();
+    _objectivesController.dispose();
+    _painZonesController.dispose();
     _audioRecorder.dispose();
     super.dispose();
   }
 
   InputDecoration _premiumInput(String label, IconData icon) {
     return InputDecoration(
-      labelText: label, labelStyle: TextStyle(color: Colors.grey.shade600), prefixIcon: Icon(icon, color: Colors.teal, size: 20),
-      filled: true, fillColor: Colors.grey.shade50, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.grey.shade600),
+      prefixIcon: Icon(icon, color: Colors.teal, size: 20),
+      filled: true,
+      fillColor: Colors.grey.shade50,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
     );
   }
 
@@ -219,12 +313,28 @@ Responde ÚNICAMENTE con un JSON válido con esas 4 llaves exactas en minúscula
   Widget build(BuildContext context) {
     const Color darkSlate = Color(0xFF0F172A);
 
-    if (_isLoadingStatus) return Scaffold(appBar: AppBar(backgroundColor: darkSlate, title: const Text('Cargando...')), body: const Center(child: CircularProgressIndicator()));
+    if (_isLoadingStatus) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: darkSlate,
+          title: const Text('Cargando...'),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('Evaluación del Paciente', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5)),
+        title: const Text(
+          'Evaluación del Paciente',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
+            letterSpacing: -0.5,
+          ),
+        ),
         backgroundColor: darkSlate,
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -235,88 +345,114 @@ Responde ÚNICAMENTE con un JSON válido con esas 4 llaves exactas en minúscula
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 1. SECCIÓN DEMOGRÁFICA Y CAMPOS PERSONALIZADOS
+            // SECCIÓN ÚNICA: CAPTURA CLÍNICA (Manual o IA)
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.02), blurRadius: 15)]),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Datos Generales', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: darkSlate)),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: TextField(controller: _ageController, keyboardType: TextInputType.number, decoration: _premiumInput('Edad', Icons.cake))),
-                      const SizedBox(width: 12),
-                      Expanded(child: TextField(controller: _phoneController, keyboardType: TextInputType.phone, decoration: _premiumInput('Teléfono', Icons.phone))),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Lista dinámica de campos (Alergias, Dieta, etc.)
-                  if (_customFields.isNotEmpty) ...[
-                    const Text('Datos Adicionales', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: darkSlate)),
-                    const SizedBox(height: 12),
-                    ...List.generate(_customFields.length, (index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          children: [
-                            Expanded(flex: 2, child: TextField(controller: _customFields[index].nameController, decoration: _premiumInput('Nombre (ej. Dieta)', Icons.label_outline))),
-                            const SizedBox(width: 8),
-                            Expanded(flex: 3, child: TextField(controller: _customFields[index].valueController, decoration: _premiumInput('Valor', Icons.edit))),
-                            IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent), onPressed: () => setState(() => _customFields.removeAt(index))),
-                          ],
-                        ),
-                      );
-                    }),
-                  ],
-                  
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _addCustomField,
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Agregar campo personalizado'),
-                      style: OutlinedButton.styleFrom(foregroundColor: Colors.teal, side: BorderSide(color: Colors.teal.shade200), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                    ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 15,
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // 2. SECCIÓN CLÍNICA (Manual o IA)
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha:0.02), blurRadius: 15)]),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Diagnóstico y Evolución', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: darkSlate)),
+                  const Text(
+                    'Diagnóstico y Evolución',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: darkSlate,
+                    ),
+                  ),
                   const SizedBox(height: 16),
 
-                  // Bloque IA y Notas
                   if (_isAiLocked) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: darkSlate, borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(
+                        color: darkSlate,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Column(
                         children: [
-                          const Icon(Icons.auto_awesome, color: Colors.amber, size: 32),
+                          const Icon(
+                            Icons.auto_awesome,
+                            color: Colors.amber,
+                            size: 32,
+                          ),
                           const SizedBox(height: 8),
-                          const Text('Asistente de IA Bloqueado', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                          const Text(
+                            'Asistente de IA Bloqueado',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           ElevatedButton(
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaywallScreen())), 
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: darkSlate, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), 
-                            child: const Text('Desbloquear ahora', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const PaywallScreen(),
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: darkSlate,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Desbloquear ahora',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
                   ] else ...[
+                    // NUEVO BOTÓN: Escanear Hoja
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: _isScanning ? null : _scanDocument,
+                          icon: _isScanning
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.document_scanner_outlined),
+                          label: Text(
+                            _isScanning
+                                ? 'Leyendo documento...'
+                                : 'Escanear Expediente (Foto)',
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: darkSlate,
+                            side: BorderSide(color: Colors.grey.shade300),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -324,26 +460,109 @@ Responde ÚNICAMENTE con un JSON válido con esas 4 llaves exactas en minúscula
                           onTap: _toggleRecording,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
-                            height: 60, width: 60,
-                            decoration: BoxDecoration(color: _isRecording ? Colors.red : Colors.teal.shade50, shape: BoxShape.circle, boxShadow: _isRecording ? [BoxShadow(color: Colors.red.withValues(alpha:0.4), blurRadius: 15, spreadRadius: 2)] : []),
-                            child: Icon(_isRecording ? Icons.stop : Icons.mic, size: 28, color: _isRecording ? Colors.white : Colors.teal),
+                            height: 60,
+                            width: 60,
+                            decoration: BoxDecoration(
+                              color: _isRecording
+                                  ? Colors.red
+                                  : Colors.teal.shade50,
+                              shape: BoxShape.circle,
+                              boxShadow: _isRecording
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.red.withValues(
+                                          alpha: 0.4,
+                                        ),
+                                        blurRadius: 15,
+                                        spreadRadius: 2,
+                                      ),
+                                    ]
+                                  : [],
+                            ),
+                            child: Icon(
+                              _isRecording ? Icons.stop : Icons.mic,
+                              size: 28,
+                              color: _isRecording ? Colors.white : Colors.teal,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(child: TextField(controller: _notesController, maxLines: 2, decoration: _premiumInput('Notas de sesión (o dicta aquí)', Icons.edit_note))),
+                        Expanded(
+                          child: TextField(
+                            controller: _notesController,
+                            maxLines: 2,
+                            decoration: _premiumInput(
+                              'Notas de sesión (o dicta aquí)',
+                              Icons.edit_note,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: _isAnalyzing ? null : _runAIAnalysis, style: ElevatedButton.styleFrom(backgroundColor: darkSlate, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), icon: _isAnalyzing ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.auto_awesome, color: Colors.amber, size: 18), label: Text(_isAnalyzing ? 'Extrayendo datos...' : 'Procesar con Inteligencia Artificial'))),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1)),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isAnalyzing ? null : _runAIAnalysis,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: darkSlate,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: _isAnalyzing
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.auto_awesome,
+                                color: Colors.amber,
+                                size: 18,
+                              ),
+                        label: Text(
+                          _isAnalyzing
+                              ? 'Extrayendo datos...'
+                              : 'Procesar con Inteligencia Artificial',
+                        ),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Divider(height: 1),
+                    ),
                   ],
 
-                  // Campos siempre visibles (El fisio puede escribir a mano si no quiere usar la IA)
-                  TextField(controller: _diagnosisController, maxLines: 2, decoration: _premiumInput('Diagnóstico', Icons.medical_services_outlined)),
+                  TextField(
+                    controller: _diagnosisController,
+                    maxLines: 2,
+                    decoration: _premiumInput(
+                      'Diagnóstico',
+                      Icons.medical_services_outlined,
+                    ),
+                  ),
                   const SizedBox(height: 12),
-                  TextField(controller: _objectivesController, maxLines: 2, decoration: _premiumInput('Objetivos Terapéuticos', Icons.flag_outlined)),
+                  TextField(
+                    controller: _objectivesController,
+                    maxLines: 2,
+                    decoration: _premiumInput(
+                      'Objetivos Terapéuticos',
+                      Icons.flag_outlined,
+                    ),
+                  ),
                   const SizedBox(height: 12),
-                  TextField(controller: _painZonesController, decoration: _premiumInput('Zonas de Dolor', Icons.personal_injury_outlined)),
+                  TextField(
+                    controller: _painZonesController,
+                    decoration: _premiumInput(
+                      'Zonas de Dolor',
+                      Icons.personal_injury_outlined,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -357,8 +576,20 @@ Responde ÚNICAMENTE con un JSON válido con esas 4 llaves exactas en minúscula
           height: 55,
           child: ElevatedButton(
             onPressed: _isSaving ? null : _saveEvaluation,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 2),
-            child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text('Guardar Expediente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 2,
+            ),
+            child: _isSaving
+                ? const CircularProgressIndicator(color: Colors.white)
+                : const Text(
+                    'Guardar Expediente',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
           ),
         ),
       ),

@@ -151,23 +151,76 @@ class _RoutineBuilderScreenState extends State<RoutineBuilderScreen> {
                       final exercise = _selectedExercises[index];
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          title: Text(
-                            exercise['name'],
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Row(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
                             children: [
-                              Text('Series: ${exercise['sets']}'),
-                              const SizedBox(width: 16),
-                              Text('Reps: ${exercise['reps']}'),
+                              ListTile(
+                                title: Text(
+                                  exercise['name'],
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => setState(
+                                    () => _selectedExercises.removeAt(index),
+                                  ),
+                                ),
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Text('Series:'),
+                                      IconButton(
+                                        icon: const Icon(Icons.remove_circle_outline, color: Colors.teal),
+                                        onPressed: () {
+                                          if (_selectedExercises[index]['sets'] > 1) {
+                                            setState(() {
+                                              _selectedExercises[index]['sets'] -= 1;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                      Text('${exercise['sets']}'),
+                                      IconButton(
+                                        icon: const Icon(Icons.add_circle_outline, color: Colors.teal),
+                                        onPressed: () {
+                                          setState(() {
+                                            _selectedExercises[index]['sets'] += 1;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  Row(
+                                    children: [
+                                      const Text('Reps:'),
+                                      IconButton(
+                                        icon: const Icon(Icons.remove_circle_outline, color: Colors.teal),
+                                        onPressed: () {
+                                          if (_selectedExercises[index]['reps'] > 1) {
+                                            setState(() {
+                                              _selectedExercises[index]['reps'] -= 1;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                      Text('${exercise['reps']}'),
+                                      IconButton(
+                                        icon: const Icon(Icons.add_circle_outline, color: Colors.teal),
+                                        onPressed: () {
+                                          setState(() {
+                                            _selectedExercises[index]['reps'] += 1;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ],
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => setState(
-                              () => _selectedExercises.removeAt(index),
-                            ),
                           ),
                         ),
                       );

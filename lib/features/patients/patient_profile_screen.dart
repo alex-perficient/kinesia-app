@@ -240,12 +240,13 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
           child: StreamBuilder<QuerySnapshot>(
             stream: _routinesStream,
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting)
+              if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
                   child: CircularProgressIndicator(color: Colors.teal),
                 );
+              }
               final docs = snapshot.data?.docs ?? [];
-              if (docs.isEmpty)
+              if (docs.isEmpty) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -266,6 +267,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                     ],
                   ),
                 );
+              }
 
               return ListView.builder(
                 padding: const EdgeInsets.all(20),
@@ -501,15 +503,16 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                 builder: (context, dailySnapshot) {
                   if (workoutSnapshot.connectionState ==
                           ConnectionState.waiting ||
-                      dailySnapshot.connectionState == ConnectionState.waiting)
+                      dailySnapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
                       child: CircularProgressIndicator(color: Colors.teal),
                     );
+                  }
                   final allLogs = [
                     ...(workoutSnapshot.data?.docs ?? []),
                     ...(dailySnapshot.data?.docs ?? []),
                   ];
-                  if (allLogs.isEmpty)
+                  if (allLogs.isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -530,6 +533,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                         ],
                       ),
                     );
+                  }
 
                   allLogs.sort(
                     (a, b) =>
