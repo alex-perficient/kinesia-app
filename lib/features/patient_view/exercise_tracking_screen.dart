@@ -147,6 +147,8 @@ class _ExerciseTrackingScreenState extends State<ExerciseTrackingScreen> {
           title: '🚨 Alerta de Dolor Alto',
           body:
               '${widget.patientName} reportó un nivel de dolor de ${_evaValue.toInt()} en el ejercicio: $exerciseName. Sugerimos revisar su caso.',
+          type: 'urgent', // <-- ¡EL DISPARADOR CLAVE PARA EL TRIAGE!
+          patientId: currentUserId, // <-- Guardamos quién lo detonó
         );
       }
     }

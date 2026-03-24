@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'create_routine_screen.dart';
 import 'physio_routine_detail_screen.dart';
 import 'clinical_history_list_screen.dart';
@@ -8,6 +9,7 @@ import 'patient_logs_history_screen.dart';
 import '../patient_view/patient_diet_screen.dart';
 import 'create_diet_screen.dart';
 import '../dashboard_physio/routine_builder_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PatientProfileScreen extends StatefulWidget {
   final String patientId;
@@ -29,6 +31,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
   late Stream<QuerySnapshot> _routinesStream;
   late Stream<QuerySnapshot> _workoutLogsStream;
   late Stream<QuerySnapshot> _dailyLogsStream;
+
+  // 👇 SOLUCIÓN AL ERROR: Declaramos la variable de alertas aquí
+  List<DocumentSnapshot> _alerts = [];
 
   @override
   void initState() {
@@ -53,6 +58,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
         .where('patientId', isEqualTo: widget.patientId)
         .orderBy('date', descending: true)
         .snapshots();
+
+    // 👇 SOLUCIÓN AL ERROR: Iniciamos la escucha de alertas al abrir la pantalla
+    _loadAlerts();
   }
 
   @override
@@ -61,7 +69,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
     super.dispose();
   }
 
-  // 👇 NUEVA FUNCIÓN: El menú inferior de opciones
+  // Menú inferior para crear rutinas
   void _showCreateRoutineOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -97,7 +105,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                     'Usa una rutina pre-armada de tu biblioteca',
                   ),
                   onTap: () {
-                    Navigator.pop(context); // Cierra el menú
+                    Navigator.pop(context);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -120,7 +128,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                   ),
                   subtitle: const Text('Selecciona ejercicios individuales'),
                   onTap: () {
-                    Navigator.pop(context); // Cierra el menú
+                    Navigator.pop(context);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -145,8 +153,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                     'Escribe tus propios ejercicios libremente',
                   ),
                   onTap: () {
-                    Navigator.pop(context); // Cierra el menú inferior
-                    // Navega a la pantalla de creación manual original
+                    Navigator.pop(context);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -164,6 +171,109 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
         );
       },
     );
+  }
+
+  // Cargar alertas del paciente
+  void _loadAlerts() {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    FirebaseFirestore.instance
+        .collection('alerts')
+        .where('patientId', isEqualTo: widget.patientId)
+        .where('isResolved', isEqualTo: false)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .listen((snapshot) {
+          if (mounted) {
+            setState(() {
+              _alerts = snapshot.docs;
+            });
+          }
+        });
+  }
+
+  // Resolver alerta
+  Future<void> _resolveAlert(String alertId) async {
+    try {
+      await FirebaseFirestore.instance.collection('alerts').doc(alertId).update(
+        {'isResolved': true, 'resolvedAt': FieldValue.serverTimestamp()},
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Alerta resuelta.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al resolver: $e')));
+      }
+    }
+  }
+
+  // 👇 FUNCIÓN V19 RECUPERADA: Dar de Alta / Archivar
+  Future<void> _confirmArchivePatient(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.archive, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('¿Dar de Alta?'),
+          ],
+        ),
+        content: const Text(
+          'El expediente se archivará y desaparecerá de tu lista principal de pacientes activos. \n\n'
+          'Nota: Los pacientes archivados siguen contando para tu límite de licencias gratuitas por motivos de almacenamiento clínico.',
+          style: TextStyle(height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Archivar Paciente',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('patients')
+            .doc(widget.patientId)
+            .update({'status': 'inactive'});
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Paciente archivado exitosamente.'),
+              backgroundColor: Colors.teal,
+            ),
+          );
+          Navigator.of(context).pop(); // Regresa al Dashboard
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error al archivar: $e')));
+        }
+      }
+    }
   }
 
   @override
@@ -186,6 +296,118 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
             letterSpacing: -0.5,
           ),
         ),
+        actions: [
+          // 1. Alertas
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Alertas Activas'),
+                      content: _alerts.isEmpty
+                          ? const Text(
+                              'Todo en orden. El paciente está siguiendo el plan.',
+                            )
+                          : SizedBox(
+                              width: double.maxFinite,
+                              height: 300,
+                              child: ListView.builder(
+                                itemCount: _alerts.length,
+                                itemBuilder: (context, index) {
+                                  final alert =
+                                      _alerts[index].data()
+                                          as Map<String, dynamic>;
+                                  return ListTile(
+                                    leading: const Icon(
+                                      Icons.error_outline,
+                                      color: Colors.red,
+                                    ),
+                                    title: Text(alert['title'] ?? 'Alerta'),
+                                    subtitle: Text(
+                                      '${alert['body']}\n${DateFormat('dd/MM HH:mm').format((alert['timestamp'] as Timestamp).toDate())}',
+                                    ),
+                                    trailing: ElevatedButton(
+                                      onPressed: () =>
+                                          _resolveAlert(_alerts[index].id),
+                                      child: const Text('Resolver'),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                    ),
+                  );
+                },
+              ),
+              if (_alerts.isNotEmpty)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: Text(
+                      _alerts.length.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          // 2. Triage IA
+          IconButton(
+            icon: const Icon(Icons.science_outlined, color: Colors.white),
+            tooltip: 'Analizar Riesgo (Triage)',
+            onPressed: () {}, // Lógica de IA a futuro
+          ),
+
+          // 👇 3. BOTÓN V19 RECUPERADO: Archivar (3 Puntos)
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            onSelected: (value) {
+              if (value == 'archive') {
+                _confirmArchivePatient(context);
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'archive',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.archive_outlined,
+                      color: Colors.orange,
+                      size: 20,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Dar de Alta (Archivar)',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.tealAccent,
@@ -211,8 +433,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
           _buildHistoryTab(darkSlate),
         ],
       ),
-
-      // 2. AQUÍ ESTÁ EL BOTÓN FLOTANTE QUE FALTABA
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton.extended(
               backgroundColor: Colors.tealAccent.shade400,
@@ -224,11 +444,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              onPressed: () => _showCreateRoutineOptions(
-                context,
-              ), // Llama a nuestro nuevo menú
+              onPressed: () => _showCreateRoutineOptions(context),
             )
-          : null, // Si no es la pestaña 0, no dibuja el botón
+          : null,
     );
   }
 
@@ -276,10 +494,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                   final routine = docs[index].data() as Map<String, dynamic>;
                   final String routineId = docs[index].id;
 
-                  // 👇 EL QUICK WIN: Envolvemos el Container en un Dismissible
                   return Dismissible(
                     key: Key(routineId),
-                    direction: DismissDirection.endToStart, // Solo deslizar de derecha a izquierda
+                    direction: DismissDirection.endToStart,
                     background: Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
@@ -288,31 +505,56 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                       ),
                       alignment: Alignment.centerRight,
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: const Icon(Icons.archive_outlined, color: Colors.white, size: 28),
+                      child: const Icon(
+                        Icons.archive_outlined,
+                        color: Colors.white,
+                        size: 28,
+                      ),
                     ),
                     confirmDismiss: (direction) async {
-                      // Pedimos confirmación elegante antes de desaparecerla
                       return await showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                           title: const Text('¿Archivar Rutina?'),
-                          content: const Text('Esta rutina desaparecerá de la app del paciente, pero los entrenamientos pasados se conservarán en el historial.'),
+                          content: const Text(
+                            'Esta rutina desaparecerá de la app del paciente, pero los entrenamientos pasados se conservarán en el historial.',
+                          ),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text(
+                                'Cancelar',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
                             ElevatedButton(
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.redAccent,
+                                foregroundColor: Colors.white,
+                              ),
                               onPressed: () => Navigator.pop(context, true),
-                              child: const Text('Archivar', style: TextStyle(fontWeight: FontWeight.bold)),
+                              child: const Text(
+                                'Archivar',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ],
                         ),
                       );
                     },
                     onDismissed: (direction) {
-                      // El "Soft Delete": Mantenemos la data, pero la ocultamos
-                      FirebaseFirestore.instance.collection('routines').doc(routineId).update({'isActive': false});
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rutina archivada exitosamente')));
+                      FirebaseFirestore.instance
+                          .collection('routines')
+                          .doc(routineId)
+                          .update({'isActive': false});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Rutina archivada exitosamente'),
+                        ),
+                      );
                     },
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -321,27 +563,51 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Colors.grey.shade100),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
                         ],
                       ),
                       child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
                         title: Text(
-                          routine['routineName'] ?? routine['title'] ?? 'Rutina',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: darkSlate, letterSpacing: -0.5),
+                          routine['routineName'] ??
+                              routine['title'] ??
+                              'Rutina',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: darkSlate,
+                            letterSpacing: -0.5,
+                          ),
                         ),
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Text(
                             '${(routine['exercises'] ?? []).length} ejercicios asignados',
-                            style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              color: Colors.teal,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                        trailing: const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.grey,
+                          size: 16,
+                        ),
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => PhysioRoutineDetailScreen(routineData: routine, routineId: routineId),
+                            builder: (context) => PhysioRoutineDetailScreen(
+                              routineData: routine,
+                              routineId: routineId,
+                            ),
                           ),
                         ),
                       ),
@@ -388,22 +654,19 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
             style: TextStyle(color: Colors.grey, height: 1.5, fontSize: 15),
           ),
           const SizedBox(height: 40),
-
           SizedBox(
             width: double.infinity,
             height: 55,
             child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CreateDietScreen(
-                      patientId: widget.patientId,
-                      patientName: widget.patientName,
-                    ),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreateDietScreen(
+                    patientId: widget.patientId,
+                    patientName: widget.patientName,
                   ),
-                );
-              },
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
@@ -420,7 +683,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
             ),
           ),
           const SizedBox(height: 16),
-
           SizedBox(
             width: double.infinity,
             height: 55,
@@ -509,7 +771,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
           ),
         ),
         Divider(height: 1, thickness: 1, color: Colors.grey.shade200),
-
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: _workoutLogsStream,
@@ -519,8 +780,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                 builder: (context, dailySnapshot) {
                   if (workoutSnapshot.connectionState ==
                           ConnectionState.waiting ||
-                      dailySnapshot.connectionState ==
-                          ConnectionState.waiting) {
+                      dailySnapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
                       child: CircularProgressIndicator(color: Colors.teal),
                     );
@@ -530,7 +790,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                     ...(workoutSnapshot.data?.docs ?? []),
                     ...(dailySnapshot.data?.docs ?? []),
                   ];
-
                   if (allLogs.isEmpty) {
                     return Center(
                       child: Column(
@@ -576,10 +835,8 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                           ? '${timestamp.toDate().day.toString().padLeft(2, '0')}/${timestamp.toDate().month.toString().padLeft(2, '0')}/${timestamp.toDate().year}'
                           : '--/--';
 
-                      // 1. ES UN ENTRENAMIENTO (Pesas o Cardio)
                       if (logData.containsKey('exerciseName')) {
                         final bool isCardio = logData['type'] == 'cardio';
-
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
@@ -594,7 +851,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                             ),
                             leading: Container(
                               padding: const EdgeInsets.all(8),
-                              // Color dinámico: Azul para cardio, Verde (Teal) para pesas
                               decoration: BoxDecoration(
                                 color: isCardio
                                     ? Colors.blue.shade50
@@ -621,7 +877,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 4.0),
                               child: Text(
-                                // Subtítulo dinámico: Muestra los Km y Pace si es cardio
                                 isCardio
                                     ? '${(logData['distanceKm'] ?? 0).toStringAsFixed(2)} km • ${logData['pace'] ?? ''}'
                                     : 'Entrenamiento de fuerza',
@@ -638,9 +893,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                             ),
                           ),
                         );
-                      }
-                      // 2. ES UN REPORTE DE BIENESTAR (Check-in diario)
-                      else {
+                      } else {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
