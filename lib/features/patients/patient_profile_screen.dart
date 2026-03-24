@@ -276,56 +276,72 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                   final routine = docs[index].data() as Map<String, dynamic>;
                   final String routineId = docs[index].id;
 
-                  // CORRECCIÓN: Estructura del ListTile ajustada para evitar variables nulas
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey.shade100),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                  // 👇 EL QUICK WIN: Envolvemos el Container en un Dismissible
+                  return Dismissible(
+                    key: Key(routineId),
+                    direction: DismissDirection.endToStart, // Solo deslizar de derecha a izquierda
+                    background: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade400,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: const Icon(Icons.archive_outlined, color: Colors.white, size: 28),
                     ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 8,
-                      ),
-                      title: Text(
-                        routine['routineName'] ?? routine['title'] ?? 'Rutina',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: darkSlate,
-                          letterSpacing: -0.5,
+                    confirmDismiss: (direction) async {
+                      // Pedimos confirmación elegante antes de desaparecerla
+                      return await showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          title: const Text('¿Archivar Rutina?'),
+                          content: const Text('Esta rutina desaparecerá de la app del paciente, pero los entrenamientos pasados se conservarán en el historial.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar', style: TextStyle(color: Colors.grey))),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Archivar', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ],
                         ),
+                      );
+                    },
+                    onDismissed: (direction) {
+                      // El "Soft Delete": Mantenemos la data, pero la ocultamos
+                      FirebaseFirestore.instance.collection('routines').doc(routineId).update({'isActive': false});
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rutina archivada exitosamente')));
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.grey.shade100),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                        ],
                       ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          '${(routine['exercises'] ?? []).length} ejercicios asignados',
-                          style: const TextStyle(
-                            color: Colors.teal,
-                            fontWeight: FontWeight.w600,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        title: Text(
+                          routine['routineName'] ?? routine['title'] ?? 'Rutina',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: darkSlate, letterSpacing: -0.5),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            '${(routine['exercises'] ?? []).length} ejercicios asignados',
+                            style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w600),
                           ),
                         ),
-                      ),
-                      trailing: const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.grey,
-                        size: 16,
-                      ),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PhysioRoutineDetailScreen(
-                            routineData: routine,
-                            routineId: routineId,
+                        trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PhysioRoutineDetailScreen(routineData: routine, routineId: routineId),
                           ),
                         ),
                       ),
@@ -503,15 +519,18 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                 builder: (context, dailySnapshot) {
                   if (workoutSnapshot.connectionState ==
                           ConnectionState.waiting ||
-                      dailySnapshot.connectionState == ConnectionState.waiting) {
+                      dailySnapshot.connectionState ==
+                          ConnectionState.waiting) {
                     return const Center(
                       child: CircularProgressIndicator(color: Colors.teal),
                     );
                   }
+
                   final allLogs = [
                     ...(workoutSnapshot.data?.docs ?? []),
                     ...(dailySnapshot.data?.docs ?? []),
                   ];
+
                   if (allLogs.isEmpty) {
                     return Center(
                       child: Column(
@@ -557,7 +576,10 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                           ? '${timestamp.toDate().day.toString().padLeft(2, '0')}/${timestamp.toDate().month.toString().padLeft(2, '0')}/${timestamp.toDate().year}'
                           : '--/--';
 
+                      // 1. ES UN ENTRENAMIENTO (Pesas o Cardio)
                       if (logData.containsKey('exerciseName')) {
+                        final bool isCardio = logData['type'] == 'cardio';
+
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
@@ -572,14 +594,19 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                             ),
                             leading: Container(
                               padding: const EdgeInsets.all(8),
+                              // Color dinámico: Azul para cardio, Verde (Teal) para pesas
                               decoration: BoxDecoration(
-                                color: Colors.teal.shade50,
+                                color: isCardio
+                                    ? Colors.blue.shade50
+                                    : Colors.teal.shade50,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
-                                Icons.fitness_center,
+                              child: Icon(
+                                isCardio
+                                    ? Icons.directions_run
+                                    : Icons.fitness_center,
                                 size: 16,
-                                color: Colors.teal,
+                                color: isCardio ? Colors.blue : Colors.teal,
                               ),
                             ),
                             title: Text(
@@ -591,11 +618,14 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                                 letterSpacing: -0.5,
                               ),
                             ),
-                            subtitle: const Padding(
-                              padding: EdgeInsets.only(top: 4.0),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
                               child: Text(
-                                'Entrenamiento',
-                                style: TextStyle(color: Colors.grey),
+                                // Subtítulo dinámico: Muestra los Km y Pace si es cardio
+                                isCardio
+                                    ? '${(logData['distanceKm'] ?? 0).toStringAsFixed(2)} km • ${logData['pace'] ?? ''}'
+                                    : 'Entrenamiento de fuerza',
+                                style: const TextStyle(color: Colors.grey),
                               ),
                             ),
                             trailing: Text(
@@ -608,7 +638,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                             ),
                           ),
                         );
-                      } else {
+                      }
+                      // 2. ES UN REPORTE DE BIENESTAR (Check-in diario)
+                      else {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(

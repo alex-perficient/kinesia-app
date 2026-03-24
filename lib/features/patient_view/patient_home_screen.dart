@@ -5,7 +5,6 @@ import 'package:kinesia_app/features/notifications/notification_bell.dart';
 import 'patient_routine_screen.dart';
 import 'patient_daily_log_screen.dart';
 import 'patient_diet_screen.dart';
-// ¡NUEVO: Importamos la biblioteca para el Atleta B2C!
 import '../../features/dashboard_physio/routine_library_screen.dart';
 import '../../services/exercise_seeder.dart';
 
@@ -26,10 +25,7 @@ class PatientHomeScreen extends StatelessWidget {
         actions: [
           NotificationBell(userId: currentUserId),
           IconButton(
-            icon: const Icon(
-              Icons.bug_report,
-              color: Colors.grey,
-            ), // Botoncito de test
+            icon: const Icon(Icons.bug_report, color: Colors.grey),
             onPressed: () async {
               await ExerciseSeeder.seedDatabase();
               if (context.mounted) {
@@ -62,21 +58,20 @@ class PatientHomeScreen extends StatelessWidget {
 
           String patientName = 'Atleta';
           int streakCount = 0;
-          String patientType =
-              'Clínica'; // Por defecto asumimos que tiene un fisio
+          String patientType = 'Clínica';
 
           if (userSnapshot.hasData && userSnapshot.data!.exists) {
             final data = userSnapshot.data!.data() as Map<String, dynamic>;
             patientName = (data['fullName'] ?? 'Atleta').split(' ')[0];
             streakCount = data['streakCount'] ?? 0;
-            patientType = data['patientType'] ?? 'Clínica'; // Leemos si es B2C
+            patientType = data['patientType'] ?? 'Clínica';
           }
 
           final bool isB2C = patientType == 'B2C';
 
           return Stack(
             children: [
-              // FONDO HERO INMERSIVO
+              // FONDO HERO INMERSIVO (INTACTO)
               Container(
                 height: MediaQuery.of(context).size.height * 0.45,
                 width: double.infinity,
@@ -98,7 +93,7 @@ class PatientHomeScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // CABECERA (HOLA, NOMBRE)
+                    // CABECERA (HOLA, NOMBRE) (INTACTO)
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
@@ -173,7 +168,7 @@ class PatientHomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
 
-                    // LISTA DE TARJETAS (EL CEREBRO DE LA PANTALLA)
+                    // LISTA DE TARJETAS
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
@@ -190,7 +185,6 @@ class PatientHomeScreen extends StatelessWidget {
                               ),
                             );
                           }
-
                           final docs = routineSnapshot.data?.docs ?? [];
 
                           return ListView(
@@ -198,9 +192,8 @@ class PatientHomeScreen extends StatelessWidget {
                               horizontal: 20.0,
                             ),
                             children: [
-                              // ---- LA MAGIA DEL B2C EMPIEZA AQUÍ ----
+                              // ---- LA MAGIA DEL B2C / B2B EMPIEZA AQUÍ (INTACTO) ----
                               if (docs.isEmpty && !isB2C)
-                                // TARJETA PACIENTE DE CLÍNICA SIN RUTINAS
                                 Card(
                                   color: Colors.white.withValues(alpha: 0.95),
                                   shape: RoundedRectangleBorder(
@@ -235,7 +228,6 @@ class PatientHomeScreen extends StatelessWidget {
                                 ),
 
                               if (docs.isEmpty && isB2C)
-                                // TARJETA ATLETA B2C (AUTODIDACTA)
                                 Card(
                                   color: darkSlate,
                                   shape: RoundedRectangleBorder(
@@ -284,7 +276,6 @@ class PatientHomeScreen extends StatelessWidget {
                                           width: double.infinity,
                                           height: 55,
                                           child: ElevatedButton.icon(
-                                            // Conectamos a la biblioteca que ya tienes construida
                                             onPressed: () => Navigator.push(
                                               context,
                                               MaterialPageRoute(
@@ -317,9 +308,8 @@ class PatientHomeScreen extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                              // ---- FIN DE LA MAGIA B2C ----
 
-                              // SI TIENE RUTINAS (APLICA PARA AMBOS ROLES)
+                              // SI TIENE RUTINAS (INTACTO)
                               ...docs.map((routineDoc) {
                                 final routineData =
                                     routineDoc.data() as Map<String, dynamic>;
@@ -406,87 +396,117 @@ class PatientHomeScreen extends StatelessWidget {
 
                               const SizedBox(height: 16),
 
-                              // TARJETA: NUTRICIÓN
-                              Card(
-                                color: Colors.green.shade50,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                  side: BorderSide(
-                                    color: Colors.green.shade200,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(24.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Row(
+                              // 👇 LA MAGIA INYECTADA: TARJETA DE NUTRICIÓN DINÁMICA
+                              StreamBuilder<QuerySnapshot>(
+                                stream: FirebaseFirestore.instance
+                                    .collection('nutrition_plans')
+                                    .where(
+                                      'patientId',
+                                      isEqualTo: currentUserId,
+                                    )
+                                    .where('isActive', isEqualTo: true)
+                                    .snapshots(),
+                                builder: (context, dietSnapshot) {
+                                  String dietDescription = isB2C
+                                      ? 'Registra tus comidas y mantén tus macros bajo control.'
+                                      : 'Revisa el plan nutricional que tu especialista diseñó para ti.';
+
+                                  // Si encontramos un plan activo, actualizamos el texto dinámicamente
+                                  if (dietSnapshot.hasData &&
+                                      dietSnapshot.data!.docs.isNotEmpty) {
+                                    final dietData =
+                                        dietSnapshot.data!.docs.first.data()
+                                            as Map<String, dynamic>;
+                                    final objective =
+                                        dietData['objective'] ??
+                                        'Mantenimiento';
+                                    final calories = dietData['calories'] ?? 0;
+                                    dietDescription =
+                                        'Plan Activo: $objective • $calories kcal diarias.';
+                                  }
+
+                                  return Card(
+                                    color: Colors.green.shade50,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                      side: BorderSide(
+                                        color: Colors.green.shade200,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(24.0),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Icon(
-                                            Icons.restaurant_menu,
-                                            color: Colors.green,
+                                          const Row(
+                                            children: [
+                                              Icon(
+                                                Icons.restaurant_menu,
+                                                color: Colors.green,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Nutrición',
+                                                style: TextStyle(
+                                                  color: Colors.green,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          SizedBox(width: 8),
+                                          const SizedBox(height: 8),
                                           Text(
-                                            'Nutrición',
-                                            style: TextStyle(
-                                              color: Colors.green,
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
+                                            dietDescription,
+                                            style: const TextStyle(
+                                              color: Colors.black87,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ), // Texto Dinámico
+                                          const SizedBox(height: 24),
+                                          SizedBox(
+                                            width: double.infinity,
+                                            height: 55,
+                                            child: ElevatedButton(
+                                              onPressed: () => Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      PatientDietScreen(
+                                                        patientId:
+                                                            currentUserId,
+                                                      ),
+                                                ),
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.green,
+                                                foregroundColor: Colors.white,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                ),
+                                                elevation: 0,
+                                              ),
+                                              child: const Text(
+                                                'Ver mi Dieta',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        isB2C
-                                            ? 'Registra tus comidas y mantén tus macros bajo control.'
-                                            : 'Revisa el plan nutricional que tu especialista diseñó para ti.',
-                                        style: const TextStyle(
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 24),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        height: 55,
-                                        child: ElevatedButton(
-                                          onPressed: () => Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  PatientDietScreen(
-                                                    patientId: currentUserId,
-                                                  ),
-                                            ),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
-                                            foregroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                            ),
-                                            elevation: 0,
-                                          ),
-                                          child: const Text(
-                                            'Ver mi Dieta',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                    ),
+                                  );
+                                },
                               ),
                               const SizedBox(height: 16),
 
-                              // TARJETA: BITÁCORA DIARIA
+                              // TARJETA: BITÁCORA DIARIA (INTACTO)
                               Card(
                                 color: Colors.white,
                                 shape: RoundedRectangleBorder(

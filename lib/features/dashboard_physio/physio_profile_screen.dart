@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../patient_view/patient_home_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter/services.dart'; // Para copiar al portapapeles
+// Agrega esta línea arriba:
+import '../patient_view/main_patient_screen.dart';
 
 class PhysioProfileScreen extends StatelessWidget {
   const PhysioProfileScreen({super.key});
@@ -49,7 +50,7 @@ class PhysioProfileScreen extends StatelessWidget {
         Navigator.pop(context);
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const PatientHomeScreen()),
+          MaterialPageRoute(builder: (context) => const MainPatientScreen()),
         );
       }
     } catch (e) {
