@@ -184,13 +184,19 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
         .where('isResolved', isEqualTo: false)
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .listen((snapshot) {
-          if (mounted) {
-            setState(() {
-              _alerts = snapshot.docs;
-            });
-          }
-        });
+        .listen(
+          (snapshot) {
+            if (mounted) {
+              setState(() {
+                _alerts = snapshot.docs;
+              });
+            }
+          },
+          onError: (error) {
+            // 👇 IGNORAMOS EL ERROR AL CERRAR SESIÓN
+            debugPrint('Stream de alertas cerrado temporalmente.');
+          },
+        );
   }
 
   // Resolver alerta
@@ -780,7 +786,8 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
                 builder: (context, dailySnapshot) {
                   if (workoutSnapshot.connectionState ==
                           ConnectionState.waiting ||
-                      dailySnapshot.connectionState == ConnectionState.waiting) {
+                      dailySnapshot.connectionState ==
+                          ConnectionState.waiting) {
                     return const Center(
                       child: CircularProgressIndicator(color: Colors.teal),
                     );

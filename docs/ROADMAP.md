@@ -63,17 +63,11 @@
 - [x] **3.1 Biblioteca de Rutinas (Templates):** Crear una colección guardada por el fisio para clonar y asignar rutinas base a múltiples pacientes con ligeras variaciones.
 - [ ] **3.2 Calendario de Asignaciones (Vista Global):** Un dashboard diario para el fisio donde visualice todas las actividades y pacientes programados para la fecha actual.
 ----------------------------------------------------------------------------------------------------------------
-# 📋 Backlog de Producto: Kines.ia (Mon TI Labs)
 
-## 🛡️ Épica 4: Seguridad, Privacidad y Autenticación
-- [ ] **Reglas de Firebase (Firestore & Storage):** Cerrar el acceso público. Configurar reglas estrictas (`request.auth.uid`) para que un paciente solo lea su documento y el fisio solo interactúe con los pacientes asignados a su `physioId`.
-- [ ] **Sanitización y Validación:** Implementar validadores de texto en formularios y base de datos para limitar caracteres y prevenir inyección masiva de datos.
-- [ ] **Cumplimiento Normativo Clínico:** Pantalla obligatoria de "Aviso de Privacidad / Consentimiento" para el paciente, aceptando el procesamiento de sus datos de salud y multimedia por motores de IA.
-- [ ] **Bloqueo de Sesiones Sensibles:** Auto-cierre de sesión o bloqueo por PIN/Biometría tras inactividad prolongada en el dispositivo del fisio.
 - [ ] **Autenticación:** Integrar inicio de sesión rápido con Google (Google Sign-In) para ambos roles.
 
 ## 🧠 Épica 5: Monetización y Motor de Inteligencia Artificial
-- [ ] **Lógica de Suscripción (Freemium):** Implementar contadores de volumen (pacientes/rutinas). Validar que al superar la cuota gratuita, el fisio deba pagar la mensualidad de 100 MXN o, de lo contrario, restringir el acceso a funcionalidades avanzadas y de IA.
+- [x] **Lógica de Suscripción (Freemium):** Implementar contadores de volumen (pacientes/rutinas). Validar que al superar la cuota gratuita, el fisio deba pagar la mensualidad de 100 MXN o, de lo contrario, restringir el acceso a funcionalidades avanzadas y de IA.
 - [ ] **Motor de Resúmenes IA (Arquitectura de Cero Costos):** Desarrollar una cola de tareas en el servidor que procese el historial del paciente en segundo plano. 
 - [ ] **Notificación de Análisis:** Avisar al fisio mediante *push notification* únicamente cuando el resumen generado por la IA esté listo para su lectura.
 

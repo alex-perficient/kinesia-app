@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:flutter/services.dart'; // Para copiar al portapapeles
-// Agrega esta línea arriba:
 import '../patient_view/main_patient_screen.dart';
+
+import '../auth/privacy_consent_screen.dart'; //BORRAR ESTA LINEA AL FINALIZAR PRUEBAS
 
 class PhysioProfileScreen extends StatelessWidget {
   const PhysioProfileScreen({super.key});
@@ -148,14 +148,24 @@ class PhysioProfileScreen extends StatelessWidget {
                 height: 55,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(text: inviteLink));
+                    // INICIA CODIGO temp
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const PrivacyConsentScreen(role: 'physiotherapist'),
+                      ),
+                    );
+                    //acaba CODIGO temp
+                    /*Clipboard.setData(ClipboardData(text: inviteLink));
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Enlace copiado al portapapeles 📋'),
                         backgroundColor: Colors.teal,
                       ),
-                    );
+                    );*/
                   },
                   icon: const Icon(Icons.copy),
                   label: const Text(

@@ -4,13 +4,18 @@ import 'firebase_options.dart';
 import 'features/auth/auth_gate.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
+// 👇 IMPORTAMOS EL ESCUDO DE SEGURIDAD
+import 'widgets/session_timeout_manager.dart';
+
+// 👇 1. CREAMOS LOS CONTROLES REMOTOS (Llaves Globales)
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('es', null);
   runApp(const KinesiaApp());
 }
@@ -20,20 +25,33 @@ class KinesiaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'KinesIA',
-      debugShowCheckedModeBanner: false,
-      theme: _buildPremiumTheme(), // Aplicamos el nuevo ADN Visual
-      home: const AuthGate(), 
+    // 👇 ENVOLVEMOS TODA LA APP EN EL ESCUDO
+    return SessionTimeoutManager(
+      // 💡 TIP PARA PRUEBAS: Cambia 'minutes: 15' a 'seconds: 15' para probar que te expulsa rápido
+      timeoutDuration: const Duration(minutes: 15),
+      child: MaterialApp(
+        navigatorKey: navigatorKey,
+        scaffoldMessengerKey: scaffoldMessengerKey,
+        title: 'KinesIA',
+        debugShowCheckedModeBanner: false,
+        theme: _buildPremiumTheme(), // Aplicamos el nuevo ADN Visual
+        home: const AuthGate(),
+      ),
     );
   }
 
   // LA MAGIA DEL FACELIFT: El Tema Global Premium
   ThemeData _buildPremiumTheme() {
     // Paleta de colores "High Performance + Clinical"
-    const Color primaryTeal = Color(0xFF0D9488); // Un Teal un poco más vibrante y moderno
-    const Color darkSlate = Color(0xFF0F172A); // Casi negro/azul marino para textos (Super Premium)
-    const Color surfaceGrey = Color(0xFFF8FAFC); // Gris ultra claro para los fondos de la app
+    const Color primaryTeal = Color(
+      0xFF0D9488,
+    ); // Un Teal un poco más vibrante y moderno
+    const Color darkSlate = Color(
+      0xFF0F172A,
+    ); // Casi negro/azul marino para textos (Super Premium)
+    const Color surfaceGrey = Color(
+      0xFFF8FAFC,
+    ); // Gris ultra claro para los fondos de la app
 
     return ThemeData(
       useMaterial3: true,
@@ -41,18 +59,30 @@ class KinesiaApp extends StatelessWidget {
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryTeal,
         primary: primaryTeal,
-        secondary: const Color(0xFFF97316), // Naranja atlético (Vibe Strava) para acentos
+        secondary: const Color(
+          0xFFF97316,
+        ), // Naranja atlético (Vibe Strava) para acentos
         surface: surfaceGrey,
         onSurface: darkSlate,
       ),
-      
+
       // TIPOGRAFÍA: Pesos fuertes y letras juntas para el look "Deportivo"
       textTheme: const TextTheme(
-        displayLarge: TextStyle(fontWeight: FontWeight.w900, color: darkSlate, letterSpacing: -1.0),
-        titleLarge: TextStyle(fontWeight: FontWeight.w800, color: darkSlate, letterSpacing: -0.5),
+        displayLarge: TextStyle(
+          fontWeight: FontWeight.w900,
+          color: darkSlate,
+          letterSpacing: -1.0,
+        ),
+        titleLarge: TextStyle(
+          fontWeight: FontWeight.w800,
+          color: darkSlate,
+          letterSpacing: -0.5,
+        ),
         titleMedium: TextStyle(fontWeight: FontWeight.w700, color: darkSlate),
         bodyLarge: TextStyle(color: darkSlate),
-        bodyMedium: TextStyle(color: Color(0xFF475569)), // Gris pizarra para subtítulos
+        bodyMedium: TextStyle(
+          color: Color(0xFF475569),
+        ), // Gris pizarra para subtítulos
       ),
 
       // APP BAR: Plana, moderna, texto oscuro y centrada
@@ -74,8 +104,10 @@ class KinesiaApp extends StatelessWidget {
       // TARJETAS (Cards): Bordes muy curvos, sombras casi invisibles pero elegantes
       cardTheme: CardThemeData(
         elevation: 4,
-        shadowColor: Colors.black.withValues(alpha: 0.08),  // withOpacity(0.08),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), // Curva Strava/Apple
+        shadowColor: Colors.black.withValues(alpha: 0.08),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ), // Curva Strava/Apple
         color: Colors.white,
         clipBehavior: Clip.antiAlias,
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
@@ -87,9 +119,18 @@ class KinesiaApp extends StatelessWidget {
           backgroundColor: primaryTeal,
           foregroundColor: Colors.white,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14), // Más altos
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 14,
+          ), // Más altos
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
       ),
 
@@ -100,7 +141,9 @@ class KinesiaApp extends StatelessWidget {
           side: const BorderSide(color: primaryTeal, width: 2), // Borde grueso
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
       ),
 
